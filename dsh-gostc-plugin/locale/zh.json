@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Gostc",
+    "description": "在全局面板中管理 gostc 内网穿透的客户端连接、私有隧道与 P2P 穿透，并自动下载、拉起命令版客户端。",
+    "detail": "docs/DETAIL.md"
+  }
+}

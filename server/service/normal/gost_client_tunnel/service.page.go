@@ -1,0 +1,134 @@
+package service
+
+import (
+	"gorm.io/gen"
+	"server/pkg/bean"
+	"server/pkg/jwt"
+	"server/pkg/utils"
+	"server/repository"
+	cache2 "server/repository/cache"
+	"server/service/common/warn_msg"
+	"time"
+)
+
+type PageReq struct {
+	bean.PageParam
+	Name       string `json:"name"`
+	Enable     int    `json:"enable"`
+	ClientCode string `json:"clientCode"`
+}
+
+type Item struct {
+	Code           string     `json:"code"`
+	Name           string     `json:"name"`
+	TargetIp       string     `json:"targetIp"`
+	TargetPort     string     `json:"targetPort"`
+	VKey           string     `json:"vKey"`
+	Node           ItemNode   `json:"node"`
+	Client         ItemClient `json:"client"`
+	UserCode       string     `json:"userCode"`
+	UserAccount    string     `json:"userAccount"`
+	Config         ItemConfig `json:"config"`
+	Enable         int        `json:"enable"`
+	Status         int        `json:"status"`
+	WarnMsg        string     `json:"warnMsg"`
+	CreatedAt      string     `json:"createdAt"`
+	InputBytes     int64      `json:"inputBytes"`
+	OutputBytes    int64      `json:"outputBytes"`
+	UseEncryption  int        `json:"useEncryption"`
+	UseCompression int        `json:"useCompression"`
+	PoolCount      int        `json:"poolCount"`
+}
+
+type ItemClient struct {
+	Name   string `json:"name"`
+	Code   string `json:"code"`
+	Online int    `json:"online"`
+}
+
+type ItemNode struct {
+	Code         string `json:"code"`
+	Name         string `json:"name"`
+	Address      string `json:"address"`
+	Online       int    `json:"online"`
+	MaxPoolCount int    `json:"maxPoolCount"`
+}
+
+type ItemConfig struct {
+	ChargingType int    `json:"chargingType"`
+	Cycle        int    `json:"cycle"`
+	Amount       string `json:"amount"`
+	Limiter      int    `json:"limiter"`
+	RLimiter     int    `json:"rLimiter"`
+	CLimiter     int    `json:"cLimiter"`
+	LimitTotal   int    `json:"limitTotal"`
+	ExpAt        string `json:"expAt"`
+}
+
+func (service *service) Page(claims jwt.Claims, req PageReq) (list []Item, total int64) {
+	db, _, _ := repository.Get("")
+	var where = []gen.Condition{
+		db.GostClientTunnel.UserCode.Eq(claims.Code),
+	}
+	if req.Name != "" {
+		where = append(where, db.GostClientTunnel.Name.Like("%"+req.Name+"%"))
+	}
+	if req.Enable > 0 {
+		where = append(where, db.GostClientTunnel.Enable.Eq(req.Enable))
+	}
+	if req.ClientCode != "" {
+		where = append(where, db.GostClientTunnel.ClientCode.Eq(req.ClientCode))
+	}
+	tunnels, total, _ := db.GostClientTunnel.Preload(
+		db.GostClientTunnel.User,
+		db.GostClientTunnel.Client,
+		db.GostClientTunnel.Node,
+	).Where(where...).Order(db.GostClientTunnel.Id.Desc()).FindByPage(req.GetOffset(), req.GetLimit())
+	for _, tunnel := range tunnels {
+		obsInfo := cache2.GetTunnelObsDateRange(cache2.MONTH_DATEONLY_LIST, tunnel.Code)
+		list = append(list, Item{
+			Code:       tunnel.Code,
+			Name:       tunnel.Name,
+			TargetIp:   tunnel.TargetIp,
+			TargetPort: tunnel.TargetPort,
+			VKey:       tunnel.VKey,
+			Node: ItemNode{
+				Code: tunnel.NodeCode,
+				Name: tunnel.Node.Name,
+				Address: func() string {
+					address, _ := tunnel.Node.GetAddress()
+					return address
+				}(),
+				Online:       utils.TrinaryOperation(cache2.GetNodeOnline(tunnel.NodeCode), 1, 2),
+				MaxPoolCount: tunnel.Node.MaxPoolCount,
+			},
+			Client: ItemClient{
+				Code:   tunnel.ClientCode,
+				Name:   tunnel.Client.Name,
+				Online: utils.TrinaryOperation(cache2.GetClientOnline(tunnel.ClientCode), 1, 2),
+			},
+			UserCode:    tunnel.UserCode,
+			UserAccount: tunnel.User.Account,
+			Config: ItemConfig{
+				ChargingType: tunnel.ChargingType,
+				Cycle:        tunnel.Cycle,
+				Amount:       tunnel.Amount.String(),
+				Limiter:      tunnel.Limiter,
+				LimitTotal:   tunnel.LimitTotal,
+				//RLimiter:     tunnel.RLimiter,
+				//CLimiter:     tunnel.CLimiter,
+				ExpAt: time.Unix(tunnel.ExpAt, 0).Format(time.DateTime),
+			},
+			Enable:         tunnel.Enable,
+			Status:         tunnel.Status,
+			WarnMsg:        warn_msg.GetTunnelWarnMsg(*tunnel),
+			CreatedAt:      tunnel.CreatedAt.Format(time.DateTime),
+			InputBytes:     obsInfo.InputBytes,
+			OutputBytes:    obsInfo.OutputBytes,
+			UseEncryption:  tunnel.UseEncryption,
+			UseCompression: tunnel.UseCompression,
+			PoolCount:      tunnel.PoolCount,
+		})
+	}
+	return list, total
+}

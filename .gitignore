@@ -1,0 +1,46 @@
+.idea
+/server/data
+/server/dist
+/client/dist
+/proxy/dist
+/proxy/data
+/web/dist
+/web/node_modules
+*.aar
+*.jar
+/client/webui/node_modules
+/client/webui/dist
+/client/webui/dist.zip
+
+# 客户端安装包/编译产物
+/client/gostc-cli.exe
+/client/gostc-gui.exe
+/client/gostc-linux-*
+/client/data
+
+# 服务端编译产物与备份
+/server/server.exe
+/server/server-linux-*
+/dist
+dist.zip.bak
+/client/webui/frontend/dist
+
+# 本地依赖缓存与临时文件
+/.gopath
+/.gocache
+/.tmp
+node_modules
+
+# 本地 scratch / 重复副本 / 独立子仓库（不随本项目推送）
+/.client-src
+/.dsh-src-extract
+/dsh-gostc-publish
+debug.log
+
+# 本地工作目录/快照/部署辅助（不入库）
+/.client-src
+/.dsh-src-extract
+/.deploy
+/.build-tools
+/dsh-gostc-publish
+debug.log

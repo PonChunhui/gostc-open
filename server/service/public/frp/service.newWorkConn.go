@@ -1,0 +1,68 @@
+package service
+
+import (
+	"errors"
+	"server/model"
+	cache2 "server/repository/cache"
+	"server/service/common/ban"
+	"server/service/common/tunnel_quota"
+	"server/service/common/user_group"
+	"time"
+)
+
+// {"version":"0.1.0","op":"NewWorkConn","content":{"user":{"user":"","metas":{"password":"4i16bw02sf","user":"gqpudmfnf9"},"run_id":"1df8d4ea578e17a3"},"run_id":"1df8d4ea578e17a3"}}
+type NewWorkConnReq struct {
+	Version string `json:"version"`
+	Op      string `json:"op"`
+	Content struct {
+		User struct {
+			User  string `json:"user"`
+			Metas struct {
+				Password string `json:"password"`
+				User     string `json:"user"`
+			} `json:"metas"`
+			RunId string `json:"run_id"`
+		} `json:"user"`
+		RunId string `json:"run_id"`
+	} `json:"content"`
+}
+
+func (s *service) NewWorkConn(req NewWorkConnReq) (any, error) {
+	now := time.Now()
+	tunnelCode := cache2.GetGostAuth(req.Content.User.Metas.User, req.Content.User.Metas.Password)
+	if tunnelCode == "" {
+		return nil, errors.New("unauthorized")
+	}
+	result := cache2.GetTunnelInfo(tunnelCode)
+	if result.Code == "" || (result.ExpAt < now.Unix() && result.ChargingTye == model.GOST_CONFIG_CHARGING_CUCLE_DAY) {
+		return nil, errors.New("expired")
+	}
+	if ban.TunnelBanned(result.Code) || ban.UserBanned(result.UserCode) {
+		return nil, errors.New("banned")
+	}
+
+	nodeInfo := cache2.GetNodeInfo(result.NodeCode)
+	if nodeInfo.LimitResetIndex != 0 && nodeInfo.LimitTotal > 0 {
+		var obsUseTotal int64
+		obsLimit := cache2.GetNodeObsLimit(nodeInfo.Code)
+		obsInfo := cache2.GetTunnelObs(now.Format(time.DateOnly), result.Code)
+		switch nodeInfo.LimitKind {
+		case model.GOST_NODE_LIMIT_KIND_ALL:
+			obsUseTotal += obsInfo.InputBytes + obsInfo.OutputBytes + obsLimit.InputBytes + obsLimit.OutputBytes
+		case model.GOST_NODE_LIMIT_KIND_INPUT:
+			obsUseTotal += obsInfo.InputBytes + obsLimit.InputBytes
+		case model.GOST_NODE_LIMIT_KIND_OUTPUT:
+			obsUseTotal += obsInfo.OutputBytes + obsLimit.OutputBytes
+		}
+		if obsUseTotal >= int64(nodeInfo.LimitTotal)*1024*1024*1024 {
+			return nil, errors.New("insufficient node traffic")
+		}
+	}
+	if tunnel_quota.Exhausted(result.Code, result.LimitTotal) {
+		return nil, errors.New("insufficient tunnel traffic")
+	}
+	if groupLimit := user_group.LimitsCached(result.UserCode); groupLimit.MonthTraffic > 0 && user_group.MonthExhausted(result.UserCode, groupLimit.MonthTraffic) {
+		return nil, errors.New("insufficient user traffic")
+	}
+	return nil, nil
+}

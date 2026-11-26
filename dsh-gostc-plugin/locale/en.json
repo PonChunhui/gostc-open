@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Gostc",
+    "description": "Manage gostc intranet-penetration clients, private tunnels and P2P links from a global panel, and auto-download and launch the command-line client.",
+    "detail": "docs/DETAIL.md"
+  }
+}

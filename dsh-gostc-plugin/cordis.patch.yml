@@ -1,0 +1,23 @@
+- insert:
+    - id: gostc
+      name: '@local/dsh-gostc'
+      config:
+        # 已在运行的 gostc webui 后端地址（复用已有后端时探测此地址）
+        backend: 'http://127.0.0.1:18080'
+        # 后端 Basic 认证（gostc 以 -web-user/-web-pwd 启动时填写）
+        username: ''
+        password: ''
+        # 你的 gostc 平台（服务端）地址，用于下载命令版客户端安装包。
+        # 例如 https://your-gostc-server.example.com ；留空则不自动下载。
+        platformUrl: ''
+        # 指定 downloads 目录中的安装包文件名；留空则自动挑选 Windows CLI 包
+        clientPackage: ''
+        # 客户端安装/数据目录；留空默认 %LOCALAPPDATA%/dsh-gostc
+        dataDir: ''
+        # 插件拉起客户端时监听的 webui 地址
+        webAddr: '127.0.0.1:18080'
+        # 拉起客户端时设置的 webui Basic 认证（可选）
+        webUser: ''
+        webPwd: ''
+        # 宿主激活后是否自动下载并拉起客户端（已有健康后端则直接复用）
+        autoStart: true

@@ -1,0 +1,49 @@
+package service
+
+import (
+	"errors"
+	"go.uber.org/zap"
+	"server/model"
+	"server/pkg/jwt"
+	"server/repository"
+	"server/service/engine"
+)
+
+type EnableReq struct {
+	Code   string `binding:"required" json:"code"`
+	Enable int    `binding:"required" json:"enable"`
+}
+
+func (service *service) Enable(claims jwt.Claims, req EnableReq) error {
+	db, _, log := repository.Get("")
+	user, _ := db.SystemUser.Where(db.SystemUser.Code.Eq(claims.Code)).First()
+	if user == nil {
+		return errors.New("用户错误")
+	}
+
+	forward, _ := db.GostClientForward.Preload(db.GostClientForward.Node).Where(
+		db.GostClientForward.Code.Eq(req.Code),
+		db.GostClientForward.UserCode.Eq(user.Code),
+	).First()
+	if forward == nil {
+		return errors.New("操作失败")
+	}
+	if forward.Status == model.STATUS_BANNED {
+		return errors.New("该隧道已被封禁，无法操作")
+	}
+	if forward.Enable == req.Enable {
+		return nil
+	}
+
+	forward.Enable = req.Enable
+	if err := db.GostClientForward.Save(forward); err != nil {
+		log.Error("启用或停用端口转发失败", zap.Error(err))
+		return errors.New("操作失败")
+	}
+	if forward.Enable == 1 {
+		engine.ClientForwardConfig(db, forward.Code)
+	} else {
+		engine.ClientRemoveForwardConfig(*forward)
+	}
+	return nil
+}
