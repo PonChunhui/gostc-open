@@ -39,10 +39,10 @@
 
 ```shell
 # Windows
-gostc-cli.exe -addr 服务端地址 -key 连接密钥
+gostc-cli.exe -addr gostc.shop -key 连接密钥
 
 # Linux
-./gostc -addr 服务端地址 -key 连接密钥
+./gostc -addr gostc.shop -key 连接密钥
 ```
 
 常用参数：
@@ -65,10 +65,10 @@ gostc-cli.exe -addr 服务端地址 -key 连接密钥
 
 ```shell
 # 私有隧道访客：把密钥 aaaaaa 的隧道映射到本机 8080 端口
-./gostc --tls=false -addr 服务端地址 -v -vts aaaaaa:8080
+./gostc -addr gostc.shop -v -vts aaaaaa:8080
 
 # P2P 访客
-./gostc --tls=false -addr 服务端地址 -p2p -vts aaaaaa:8080
+./gostc -addr gostc.shop -p2p -vts aaaaaa:8080
 ```
 
 多条隧道用英文逗号分隔：`-vts aaaaaa:8080,bbbbbb:8081`。
@@ -77,9 +77,9 @@ gostc-cli.exe -addr 服务端地址 -key 连接密钥
 
 ```shell
 # 客户端
-gostc install --tls=false -addr 127.0.0.1:8080 -key ******
+gostc install -addr gostc.shop -key ******
 # 节点
-gostc install --tls=false -addr 127.0.0.1:8080 -s -key ******
+gostc install -addr gostc.shop -s -key ******
 
 systemctl start gostc     # 启动
 systemctl stop gostc      # 停止
@@ -91,10 +91,10 @@ systemctl status gostc    # 查看状态
 
 ```shell
 gostc uninstall
-gostc install --tls=false -addr 127.0.0.1:8080 -key 新密钥
+gostc install -addr gostc.shop -key 新密钥
 ```
 
-> 注意：服务名固定为 gostc，无法用系统服务同时运行多个客户端/节点。需要多开时请用 pm2、supervisor 等进程管理工具直接启动进程。
+> TLS 默认开启（`--tls` 默认 true），平台 `gostc.shop` 走 HTTPS，无需额外参数。服务名固定为 gostc，无法用系统服务同时运行多个客户端/节点。需要多开时请用 pm2、supervisor 等进程管理工具直接启动进程。
 
 ### Linux 安装为服务（从平台下载）
 
@@ -104,7 +104,7 @@ chmod +x gostc-linux-amd64
 mv gostc-linux-amd64 /usr/local/bin/gostc
 
 # 2. 注册为服务并启动
-gostc install --tls=false -addr 服务端地址 -key 连接密钥
+gostc install -addr gostc.shop -key 连接密钥
 systemctl start gostc
 ```
 
@@ -121,7 +121,7 @@ services:
     command:
       - --tls=true
       - -addr
-      - 服务端地址
+      - gostc.shop
       - -key
       - ****** # 客户端密钥
 ```

@@ -59,7 +59,7 @@
 访客端访问（在发起访问的机器上运行客户端）：
 
 ```shell
-./gostc --tls=false -addr 服务端地址 -v -vts 访问密钥:本地端口
+./gostc -addr gostc.shop -v -vts 访问密钥:本地端口
 ```
 
 启动后，访问本机「本地端口」即相当于访问隧道指向的内网服务。多条用英文逗号分隔。
@@ -76,7 +76,7 @@
 - 访客端使用 `-p2p` 模式：
 
 ```shell
-./gostc --tls=false -addr 服务端地址 -p2p -vts 访问密钥:本地端口
+./gostc -addr gostc.shop -p2p -vts 访问密钥:本地端口
 ```
 
 - 是否允许回退中继转发由节点能力决定；列表会显示中继转发是否生效。
@@ -112,7 +112,7 @@
 2. 在公网服务器上以**节点模式**运行客户端：
 
 ```shell
-./gostc --tls=false -addr 服务端地址 -s -key 节点密钥
+./gostc -addr gostc.shop -s -key 节点密钥
 ```
 
 3. 节点上线后，即可在创建隧道时选择该节点。

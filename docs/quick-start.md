@@ -25,13 +25,13 @@
 
 ```shell
 # Windows
-gostc-cli.exe -addr 服务端地址 -key 连接密钥
+gostc-cli.exe -addr gostc.shop -key 连接密钥
 
 # Linux
-./gostc -addr 服务端地址 -key 连接密钥
+./gostc -addr gostc.shop -key 连接密钥
 ```
 
-服务端未启用 SSL 时追加 `--tls=false`。详见 [客户端安装](client-install.md)。
+平台 `gostc.shop` 默认启用 TLS，无需额外参数；自建服务端未启用 SSL 时追加 `--tls=false`。详见 [客户端安装](client-install.md)。
 
 客户端启动后，回到网页「客户端」列表，状态变为**在线**即连接成功。
 

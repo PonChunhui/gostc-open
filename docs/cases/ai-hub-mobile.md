@@ -63,11 +63,11 @@ ipconfig
 | --- | --- |
 | 名称 | `我的工作电脑`（随意，便于辨识） |
 | 密钥 | 控制台复制的客户端连接密钥 |
-| 服务器 | 下拉选 **禁用TLS**，地址填 `gostc.linux66.cn:8080`（替换为你站点的服务端地址） |
+| 服务器 | 下拉选 **启用TLS**，地址填 `gostc.shop`（替换为你站点的服务端地址） |
 
 ![新增客户端](img/client-add.png)
 
-> 注意：服务器这一项要**「禁用TLS」+ 服务端地址**组合使用（服务端未启用 SSL 时），别自己加 `https://` 或 `wss://`，否则会一直连不上。
+> 注意：连接平台 `gostc.shop` 要选**「启用TLS」**；地址直接填域名，别自己加 `https://` 或 `wss://`，否则会一直连不上。自建服务端未启用 SSL 时才选「禁用TLS」。
 
 已有条目点「编辑」改的是同一个表单，字段完全一致：
 
@@ -111,10 +111,10 @@ connect to server error: connection write timeout
 不想用图形界面时，等价命令是：
 
 ```bash
-./gostc --tls=false --addr gostc.linux66.cn:8080 --key 你的客户端密钥
+./gostc --addr gostc.shop --key 你的客户端密钥
 ```
 
-参数与界面一一对应：`--tls=false` = 禁用TLS，`--addr` = 服务器，`--key` = 密钥。详见 [客户端安装](../client-install.md)。
+参数与界面一一对应：`--addr` = 服务器，`--key` = 密钥，TLS 默认开启（相当于界面选「启用TLS」）。详见 [客户端安装](../client-install.md)。
 
 ### 3.5 在控制台交叉确认客户端在线
 
@@ -224,7 +224,7 @@ connect to server error: connection write timeout
 
 | 现象 | 最可能的原因 | 处理办法 |
 | --- | --- | --- |
-| 客户端日志反复 `connection write timeout` | 本机网络出站被拦、开了代理/VPN | 关代理后重试；换手机热点对比；`telnet gostc.linux66.cn 8080` 测通 |
+| 客户端日志反复 `connection write timeout` | 本机网络出站被拦、开了代理/VPN | 关代理后重试；换手机热点对比；`telnet gostc.shop 443` 测通 |
 | 客户端一直连不上，日志无 `login to server success` | 密钥填错，或服务器选了 TLS | 重新复制密钥；服务器用「禁用TLS + 服务端地址」 |
 | 域名访问 502 / 504 | 内网 IP 或端口填错、Harness/插件未启动 | 本机 `netstat -ano \| findstr 18787` 看监听；确认内网 IP 是当前网卡地址 |
 | 昨天能用今天不行 | 路由器重启后 DHCP 换了 IP | 隧道里改成新 IP，或给这台机设静态 IP / 路由器 IP 绑定 |
