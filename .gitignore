@@ -17,6 +17,7 @@
 /client/gostc-gui.exe
 /client/gostc-linux-*
 /client/data
+/client/gui/dist/
 
 # 服务端编译产物与备份
 /server/server.exe

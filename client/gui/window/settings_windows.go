@@ -1,8 +1,14 @@
+//go:build windows
+
 package window
 
 import (
 	"errors"
 	"fmt"
+	"log"
+	"sync/atomic"
+	"time"
+
 	"gioui.org/app"
 	"gioui.org/font"
 	"gioui.org/io/system"
@@ -12,11 +18,36 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"gostc-sub/gui/global"
+	"gostc-sub/internal/common"
 	"gostc-sub/webui/backend/bootstrap"
-	"log"
-	"sync/atomic"
-	"time"
 )
+
+var (
+	settingsWin   *Window
+	settingsShown bool
+)
+
+// ShowSettings 打开监听设置窗口；已打开则前置。
+func ShowSettings() {
+	if settingsShown && settingsWin != nil {
+		settingsWin.Perform(system.ActionRaise)
+		settingsWin.Perform(system.ActionUnmaximize)
+		return
+	}
+	settingsWin = NewWindow("GOSTC GUI 监听设置 "+common.VERSION, OptionCloseCallback(func() {
+		settingsShown = false
+	}))
+	_ = settingsWin.Create()
+	settingsShown = true
+}
+
+// CloseSettings 退出时关闭设置窗口。
+func CloseSettings() {
+	if settingsShown && settingsWin != nil {
+		settingsWin.Close()
+		settingsShown = false
+	}
+}
 
 type Option func(window *Window)
 
@@ -82,13 +113,6 @@ func (win *Window) Close() {
 func run(window *app.Window) error {
 	theme := material.NewTheme()
 
-	//fontTheme := material.NewTheme()
-	//fontTheme.ContrastFg = color.NRGBA{
-	//	R: 0,
-	//	G: 0,
-	//	B: 0,
-	//	A: 255,
-	//}
 	var addressEditor widget.Editor
 	var saveConfigClick widget.Clickable
 	addressEditor.SetText(global.Config.Address)
@@ -111,17 +135,7 @@ func run(window *app.Window) error {
 			gtx := app.NewContext(&ops, e)
 
 			if saveConfigClick.Clicked(gtx) {
-				global.Config.Address = addressEditor.Text()
-				_ = global.SaveConfig(global.BasePath + "/config.yaml")
-				if bootstrap.IsRunningServer() {
-					bootstrap.StopServer()
-				}
-				if err := bootstrap.StartServer(global.Config.Address); err != nil {
-					errMsg = err.Error()
-				} else {
-					errMsg = "无异常消息"
-				}
-				RefreshMain()
+				errMsg = applyAddress(addressEditor.Text())
 			}
 
 			layout.Flex{Axis: layout.Vertical}.Layout(gtx,

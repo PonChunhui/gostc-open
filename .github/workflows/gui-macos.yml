@@ -1,0 +1,36 @@
+name: GUI macOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  macos-gui:
+    # macos-14 为 Apple Silicon runner，可原生编译 arm64 并通过 clang -arch x86_64 交叉 amd64
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: client/go.mod
+          cache-dependency-path: client/go.sum
+
+      - name: Build .app and .dmg
+        working-directory: ./client
+        run: bash gui/packaging/macos/package.sh "${GITHUB_REF_NAME}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gostc-macos-dmg
+          path: client/gui/dist/*.dmg
+
+      - name: Upload release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
+        with:
+          files: ./client/gui/dist/*.dmg
