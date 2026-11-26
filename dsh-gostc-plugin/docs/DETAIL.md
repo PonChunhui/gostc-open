@@ -63,7 +63,11 @@ so the backend runs at boot independently of the plugin (`service` mode).
 
 ## Configuration
 
-Edit the plugin row's `config` in `cordis.patch.yml` (or the Plugins config page):
+Runtime options (`platformUrl`, `clientPackage`, `webAddr`, `webUser`, `webPwd`,
+`autoStart`) can be edited directly in the **Backend** tab's **Settings** form;
+saving persists them to `<dataDir>/settings.json` and takes effect immediately,
+overriding the defaults below. The remaining keys are set in the plugin row's
+`config` in `cordis.patch.yml`:
 
 | Key | Default | Meaning |
 | --- | --- | --- |

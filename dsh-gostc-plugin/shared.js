@@ -31,5 +31,5 @@ export const gostcProcessRoute = (sub) => GOSTC_PROCESS_PREFIX.slice(1) + sub;
 /** Allowed process-control subpaths (enforced Host-side). */
 export const GOSTC_PROCESS_SUBPATHS = [
   'status', 'start', 'stop', 'restart', 'download',
-  'service/install', 'service/uninstall',
+  'service/install', 'service/uninstall', 'settings', 'selftest',
 ];

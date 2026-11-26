@@ -6,6 +6,7 @@
  *    selecting the package that matches the host OS + CPU architecture,
  *  - reuse an already-healthy backend or launch a plugin-managed child process,
  *  - expose start/stop/restart and Windows-service install/uninstall (UAC),
+ *  - persist panel-editable settings (platformUrl etc.) to dataDir/settings.json,
  *  - terminate the managed child when the plugin is disposed.
  *
  * Uses ctx.subprocess (managed argv spawn, bounded output, idempotent terminate).
@@ -18,6 +19,9 @@ import os from 'node:os';
 
 const MAX_LOG = 8000;
 const MAX_RESTARTS = 3;
+const SETTINGS_KEYS = ['platformUrl', 'clientPackage', 'webAddr', 'webUser', 'webPwd', 'autoStart', 'contactEmail', 'contactQQ', 'contactWeChat'];
+/** Official gostc platform; used as the default download source / homepage. */
+export const DEFAULT_PLATFORM_URL = 'https://gostc.linux66.cn';
 
 function defaultDataDir() {
   const local = process.env.LOCALAPPDATA;
@@ -116,12 +120,6 @@ export function checkMagic(buf, osName) {
 
 export function createProcessManager(ctx, config) {
   const backend = String(config?.backend || 'http://127.0.0.1:18080').replace(/\/+$/, '');
-  const platformUrl = String(config?.platformUrl || '').replace(/\/+$/, '');
-  const clientPackage = String(config?.clientPackage || '');
-  const webAddr = String(config?.webAddr || '127.0.0.1:18080');
-  const webUser = String(config?.webUser || '');
-  const webPwd = String(config?.webPwd || '');
-  const autoStart = config?.autoStart !== false;
   const username = String(config?.username || '');
   const password = String(config?.password || '');
   const authHeader = username
@@ -133,6 +131,29 @@ export function createProcessManager(ctx, config) {
   const supported = SUPPORTED_OS.has(target.os);
   const binName = isWindows ? 'gostc-cli.exe' : 'gostc-cli';
   const exePath = path.join(dataDir, binName);
+  const settingsPath = path.join(dataDir, 'settings.json');
+
+  // Panel-editable settings: cordis config provides defaults; dataDir/settings.json
+  // (written by the in-panel settings form) overrides them and survives restarts.
+  const live = {
+    platformUrl: String(config?.platformUrl || DEFAULT_PLATFORM_URL).replace(/\/+$/, ''),
+    clientPackage: String(config?.clientPackage || ''),
+    webAddr: String(config?.webAddr || '127.0.0.1:18080'),
+    webUser: String(config?.webUser || ''),
+    webPwd: String(config?.webPwd || ''),
+    autoStart: config?.autoStart !== false,
+    contactEmail: String(config?.contactEmail || ''),
+    contactQQ: String(config?.contactQQ || ''),
+    contactWeChat: String(config?.contactWeChat || ''),
+  };
+  try {
+    const saved = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    for (const k of SETTINGS_KEYS) {
+      if (saved[k] === undefined) continue;
+      live[k] = k === 'autoStart' ? saved[k] !== false : String(saved[k]);
+    }
+    live.platformUrl = live.platformUrl.replace(/\/+$/, '');
+  } catch {}
 
   const state = {
     phase: 'idle', // idle|downloading|starting|running|stopped|error|unsupported
@@ -143,13 +164,9 @@ export function createProcessManager(ctx, config) {
     retries: 0,
     supported,
     target, // { os, arch }
-    platformUrl,
-    clientPackage,
     dataDir,
     exePath,
-    webAddr,
     backend,
-    autoStart,
   };
 
   let handle = null;
@@ -168,12 +185,30 @@ export function createProcessManager(ctx, config) {
     return '';
   }
 
+  function getSettings() {
+    return Object.assign({}, live);
+  }
+
   function snapshot() {
-    return Object.assign({}, state, {
+    return Object.assign({}, state, getSettings(), {
       hasExe: fs.existsSync(exePath),
       logTail: readLogTail(),
       busy,
     });
+  }
+
+  async function updateSettings(partial) {
+    for (const k of SETTINGS_KEYS) {
+      if (partial[k] === undefined) continue;
+      live[k] = k === 'autoStart' ? partial[k] !== false && partial[k] !== 'false' : String(partial[k]);
+    }
+    live.platformUrl = live.platformUrl.replace(/\/+$/, '');
+    await fsp.mkdir(dataDir, { recursive: true });
+    const tmp = settingsPath + '.tmp-' + process.pid;
+    await fsp.writeFile(tmp, JSON.stringify(live, null, 2), 'utf8');
+    await fsp.rename(tmp, settingsPath);
+    state.error = null;
+    return snapshot();
   }
 
   function fail(message) {
@@ -207,6 +242,34 @@ export function createProcessManager(ctx, config) {
     }
   }
 
+  /** One-click self test: local backend health + platform reachability. */
+  async function selftest() {
+    const backendResult = await probe();
+    const platform = { url: live.platformUrl, reachable: false, status: null, error: null };
+    if (!live.platformUrl) {
+      platform.error = '未配置平台地址';
+    } else {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      try {
+        const res = await fetch(`${live.platformUrl}/api/v1/public/download/list`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', accept: 'application/json' },
+          body: '{}',
+          signal: ctrl.signal,
+        });
+        platform.status = res.status;
+        platform.reachable = res.ok;
+        if (!res.ok) platform.error = `HTTP ${res.status}`;
+      } catch (err) {
+        platform.error = err.message || String(err);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    return { backend: backendResult, platform, target, dataDir, backendUrl: backend };
+  }
+
   async function runVersion() {
     const sp = getSubprocess();
     if (!sp) throw new Error('subprocess 服务不可用');
@@ -223,7 +286,7 @@ export function createProcessManager(ctx, config) {
   }
 
   async function discoverPackage() {
-    const res = await fetch(`${platformUrl}/api/v1/public/download/list`, {
+    const res = await fetch(`${live.platformUrl}/api/v1/public/download/list`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: '{}',
@@ -240,7 +303,7 @@ export function createProcessManager(ctx, config) {
   }
 
   async function download(name) {
-    const url = `${platformUrl}/api/v1/public/download/file?name=${encodeURIComponent(name)}`;
+    const url = `${live.platformUrl}/api/v1/public/download/file?name=${encodeURIComponent(name)}`;
     const res = await fetch(url, { headers: { accept: 'application/octet-stream' } });
     if (!res.ok) throw new Error(`下载失败 HTTP ${res.status}（${name}）`);
     const buf = Buffer.from(await res.arrayBuffer());
@@ -267,7 +330,7 @@ export function createProcessManager(ctx, config) {
           // existing binary unusable → fall through to re-download
         }
       }
-      if (!platformUrl) {
+      if (!live.platformUrl) {
         if (fs.existsSync(exePath)) {
           state.error = null;
           return { ok: true, downloaded: false };
@@ -277,8 +340,8 @@ export function createProcessManager(ctx, config) {
       }
       state.phase = 'downloading';
       state.error = null;
-      const name = clientPackage || (await discoverPackage());
-      state.clientPackage = name;
+      const name = live.clientPackage || (await discoverPackage());
+      live.clientPackage = name;
       await download(name);
       state.version = await runVersion();
       return { ok: true, downloaded: true };
@@ -326,8 +389,9 @@ export function createProcessManager(ctx, config) {
       // 1) reuse an already-healthy backend (e.g. a manually started gostc-gui.exe)
       const existing = await probe();
       if (existing.healthy) {
+        const svc = await queryService();
         state.phase = 'running';
-        state.mode = 'external';
+        state.mode = handle ? 'managed' : (svc === 'running' ? 'service' : 'external');
         state.version = existing.version;
         state.error = null;
         state.retries = 0;
@@ -341,8 +405,8 @@ export function createProcessManager(ctx, config) {
       if (!sp) { fail('subprocess 服务不可用，无法拉起客户端'); return snapshot(); }
       state.phase = 'starting';
       state.error = null;
-      const argv = [exePath, '-web-addr', webAddr, '-console'];
-      if (webUser) argv.push('-web-user', webUser, '-web-pwd', webPwd);
+      const argv = [exePath, '-web-addr', live.webAddr, '-console'];
+      if (live.webUser) argv.push('-web-user', live.webUser, '-web-pwd', live.webPwd);
       handle = sp.spawn({
         argv,
         cwd: dataDir,
@@ -371,6 +435,26 @@ export function createProcessManager(ctx, config) {
   }
 
   async function stop() {
+    // A Windows service is stopped through the SCM (needs elevation), not by
+    // killing a child handle.
+    if (state.mode === 'service' && !handle) {
+      try {
+        await elevate(['stop']);
+        state.phase = 'stopped';
+        state.mode = null;
+        state.error = null;
+        state.retries = 0;
+      } catch (err) {
+        state.error = err.message || String(err);
+      }
+      return snapshot();
+    }
+    // An external process (e.g. a manually launched gostc-gui.exe) is not ours
+    // to kill; refuse rather than silently no-op.
+    if (state.mode === 'external' && !handle) {
+      state.error = '外部进程不由插件管理，无法在此停止；请自行退出该进程或改用系统服务。';
+      return snapshot();
+    }
     intentionalStop = true;
     if (restartTimer) { clearTimeout(restartTimer); restartTimer = null; }
     const h = handle;
@@ -398,16 +482,20 @@ export function createProcessManager(ctx, config) {
     return "'" + String(s).replace(/'/g, "''") + "'";
   }
 
-  async function elevate(args) {
+  /** Run one or more exe invocations inside a SINGLE elevated (UAC) session. */
+  async function elevateScript(commands) {
     const sp = getSubprocess();
     if (!sp) throw new Error('subprocess 服务不可用');
-    const argList = '@(' + args.map(psQuote).join(',') + ')';
-    const script = `Start-Process -FilePath ${psQuote(exePath)} -ArgumentList ${argList} -Verb RunAs -WindowStyle Hidden -Wait`;
+    const inner = commands
+      .map((args) => `& ${psQuote(exePath)} ${args.map(psQuote).join(' ')}`)
+      .join('; if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; ');
+    const innerScript = inner + '; exit $LASTEXITCODE';
+    const outer = `$p = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-Command',${psQuote(innerScript)}) -Verb RunAs -WindowStyle Hidden -Wait -PassThru; exit $p.ExitCode`;
     const h = sp.spawn({
-      argv: ['powershell.exe', '-NoProfile', '-Command', script],
+      argv: ['powershell.exe', '-NoProfile', '-Command', outer],
       cwd: dataDir,
       stdio: { stdin: 'ignore', stdout: { maxBytes: 16 * 1024 }, stderr: { maxBytes: 16 * 1024 } },
-      graceMs: 60000,
+      graceMs: 120000,
     });
     const { exitCode } = await h.done;
     const errText = h.collected.stderr ? h.collected.stderr.readFrom(0).text : '';
@@ -416,25 +504,60 @@ export function createProcessManager(ctx, config) {
     }
   }
 
+  async function elevate(args) {
+    return elevateScript([args]);
+  }
+
+  /** Query the Windows service state: 'running' | 'stopped' | 'absent'. */
+  async function queryService() {
+    if (!isWindows) return 'absent';
+    const sp = getSubprocess();
+    if (!sp) return 'absent';
+    try {
+      const h = sp.spawn({
+        argv: ['sc.exe', 'query', 'gostc'],
+        cwd: dataDir,
+        stdio: { stdin: 'ignore', stdout: { maxBytes: 8 * 1024 }, stderr: { maxBytes: 8 * 1024 } },
+        graceMs: 8000,
+      });
+      const { exitCode } = await h.done;
+      const text = h.collected.stdout ? h.collected.stdout.readFrom(0).text : '';
+      if (exitCode !== 0) return 'absent';
+      if (/RUNNING/.test(text)) return 'running';
+      return 'stopped';
+    } catch {
+      return 'absent';
+    }
+  }
+
   async function serviceInstall() {
     if (!isWindows) { fail('安装为系统服务当前仅支持 Windows（UAC 提权）'); return snapshot(); }
     try {
       const ensured = await ensureClient(false);
       if (!ensured.ok) return snapshot();
+      // Release the port if a plugin-managed child currently owns it, so the
+      // Windows service can bind instead.
+      if (handle) { await stop(); }
       state.phase = 'starting';
       state.error = null;
-      const args = ['install', '-web-addr', webAddr];
-      if (webUser) args.push('-web-user', webUser, '-web-pwd', webPwd);
-      await elevate(args);
-      // service may take a moment to start
+      const args = ['install', '-web-addr', live.webAddr];
+      if (live.webUser) args.push('-web-user', live.webUser, '-web-pwd', live.webPwd);
+      // kardianos `install` only registers the service; it does NOT start it.
+      // Start it in the same elevated session so it survives DSH exiting.
+      await elevateScript([args, ['start']]);
       const ready = await waitReady(10000);
-      if (ready.healthy) {
+      const svc = await queryService();
+      if (ready.healthy && svc === 'running') {
         state.phase = 'running';
         state.mode = 'service';
         state.version = ready.version || state.version;
         state.error = null;
+      } else if (svc === 'running') {
+        state.phase = 'starting';
+        state.mode = 'service';
+        state.error = '服务已启动，但后端尚未就绪，可稍后刷新';
       } else {
-        state.error = '服务已安装，但后端尚未就绪，可稍后刷新或手动启动服务';
+        state.error = '服务已安装，但未能启动（退出码见日志），可稍后手动启动服务';
         state.phase = 'stopped';
       }
       return snapshot();
@@ -460,26 +583,24 @@ export function createProcessManager(ctx, config) {
 
   async function kickoff() {
     if (!supported) { state.phase = 'unsupported'; return; }
-    // wait briefly for the subprocess service to appear during boot
     for (let i = 0; i < 20 && !getSubprocess() && !disposed; i += 1) {
       await new Promise((r) => setTimeout(r, 250));
     }
     if (disposed) return;
-    // reuse an already-healthy backend first (no provisioning needed)
     const existing = await probe();
     if (disposed) return;
     if (existing.healthy) {
+      const svc = await queryService();
       state.phase = 'running';
-      state.mode = 'external';
+      state.mode = svc === 'running' ? 'service' : 'external';
       state.version = existing.version;
       state.error = null;
       state.retries = 0;
       return;
     }
-    // otherwise auto-install the client, then launch when autoStart is on
     const ensured = await ensureClient(false);
     if (disposed) return;
-    if (ensured.ok && autoStart) await start();
+    if (ensured.ok && live.autoStart) await start();
   }
 
   function dispose() {
@@ -493,6 +614,9 @@ export function createProcessManager(ctx, config) {
 
   return {
     snapshot,
+    getSettings,
+    updateSettings,
+    selftest,
     probe,
     start,
     stop,

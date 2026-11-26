@@ -166,19 +166,29 @@ export function apply(ctx, config) {
         sendJson(res, 404, { code: 1, msg: `unknown gostc process op: ${sub}`, data: null });
         return;
       }
-      const isStatusGet = sub === 'status' && req.method === 'GET';
-      if (req.method !== 'POST' && !isStatusGet) {
-        sendMethodNotAllowed(res, sub === 'status' ? 'GET, POST' : 'POST');
+      const isReadGet = (sub === 'status' || sub === 'settings') && req.method === 'GET';
+      if (req.method !== 'POST' && !isReadGet) {
+        sendMethodNotAllowed(res, (sub === 'status' || sub === 'settings') ? 'GET, POST' : 'POST');
         return;
       }
       let payload = {};
-      if (!isStatusGet) {
+      if (!isReadGet) {
         payload = await readJsonBody(req, res);
         if (payload === undefined) return;
+      }
+      if (sub === 'selftest') {
+        try {
+          const result = await manager.selftest();
+          sendJson(res, 200, { code: 0, msg: 'ok', data: result });
+        } catch (err) {
+          sendJson(res, 200, { code: 1, msg: err.message || String(err), data: null });
+        }
+        return;
       }
       try {
         switch (sub) {
           case 'status': break;
+          case 'settings': if (req.method === 'POST') await manager.updateSettings(payload); break;
           case 'start': await manager.start(); break;
           case 'stop': await manager.stop(); break;
           case 'restart': await manager.restart(); break;
