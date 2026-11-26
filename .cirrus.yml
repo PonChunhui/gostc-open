@@ -1,0 +1,19 @@
+# Cirrus CI：公开仓库免费使用 macOS runner（GitHub Actions 的 macOS 被账号限制时的替代方案）。
+# 复用与 GitHub Actions 相同的打包脚本，产出 universal .dmg，任务页面可下载 artifacts。
+macos_dmg_task:
+  name: macOS GUI universal .dmg
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-sonoma-base:latest
+  timeout_in: 45m
+  env:
+    HOMEBREW_NO_AUTO_UPDATE: 1
+    HOMEBREW_NO_INSTALL_CLEANUP: 1
+  install_go_script:
+    - export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+    - brew install go
+    - go version
+  build_script:
+    - export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+    - cd client && bash gui/packaging/macos/package.sh "${CIRRUS_TAG:-dev}"
+  dmg_artifacts:
+    path: "client/gui/dist/*.dmg"

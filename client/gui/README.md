@@ -42,8 +42,11 @@ bash gui/packaging/macos/package.sh 2.0.11
 
 ### CI 自动打包
 
-`.github/workflows/gui-macos.yml`：推送 `v*` tag（或手动 workflow_dispatch）时在 `macos-14`
-runner 上执行同一脚本，dmg 作为 artifact 上传，并附加到对应 GitHub Release。
+- `.github/workflows/gui-macos.yml`：推送 `v*` tag（或手动 workflow_dispatch）时在 `macos-14`
+  runner 上执行同一脚本，dmg 作为 artifact 上传，并附加到对应 GitHub Release。
+  注意：部分 GitHub 账号会被平台风控限制 macOS runner（任务秒取消）；此时可用下面的 Cirrus CI。
+- `.cirrus.yml`（根目录）：公开仓库在 [cirrus-ci.com](https://cirrus-ci.com) 免费使用 macOS runner。
+  用 GitHub 登录并给本仓库安装 Cirrus CI App 后，推送即触发，dmg 在任务页面的 Artifacts 下载。
 
 ### 首次打开（Gatekeeper）
 

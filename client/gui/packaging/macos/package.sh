@@ -34,11 +34,16 @@ cd "$CLIENT_DIR"
 export CGO_ENABLED=1
 export GOOS=darwin
 
-echo "==> 编译 arm64"
-GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o "$TMP_DIR/$BIN_NAME-arm64" ./gui/
-
-echo "==> 交叉编译 amd64（Apple Silicon 上通过 clang -arch x86_64）"
-GOARCH=amd64 CC="clang -arch x86_64" go build -trimpath -ldflags "-s -w" -o "$TMP_DIR/$BIN_NAME-amd64" ./gui/
+echo "==> 编译本机架构（$(uname -m)）"
+if [ "$(uname -m)" = "arm64" ]; then
+  GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o "$TMP_DIR/$BIN_NAME-arm64" ./gui/
+  echo "==> 交叉编译 amd64（clang -arch x86_64）"
+  GOARCH=amd64 CC="clang -arch x86_64" go build -trimpath -ldflags "-s -w" -o "$TMP_DIR/$BIN_NAME-amd64" ./gui/
+else
+  GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o "$TMP_DIR/$BIN_NAME-amd64" ./gui/
+  echo "==> 交叉编译 arm64（clang -arch arm64）"
+  GOARCH=arm64 CC="clang -arch arm64" go build -trimpath -ldflags "-s -w" -o "$TMP_DIR/$BIN_NAME-arm64" ./gui/
+fi
 
 echo "==> 合并 universal 二进制"
 lipo -create -output "$TMP_DIR/$BIN_NAME" "$TMP_DIR/$BIN_NAME-arm64" "$TMP_DIR/$BIN_NAME-amd64"
