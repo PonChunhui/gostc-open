@@ -1,0 +1,25 @@
+# Codemagic：macOS M2 云端构建（GitHub macOS runner 被账号限制、Cirrus 网站不可达时的备选）。
+# 复用与 GitHub Actions / Cirrus 相同的打包脚本，产出 universal .dmg，任务页面 Artifacts 下载。
+# 用法：codemagic.io 用 GitHub 登录 → 添加本仓库 → 检测到本文件后手动 Start new build 选 macos-dmg。
+workflows:
+  macos-dmg:
+    name: macOS GUI universal .dmg
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      vars:
+        HOMEBREW_NO_AUTO_UPDATE: 1
+        HOMEBREW_NO_INSTALL_CLEANUP: 1
+    scripts:
+      - name: Install Go
+        script: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          brew install go
+          go version
+      - name: Build universal .dmg
+        script: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          cd client
+          bash gui/packaging/macos/package.sh "${CM_TAG:-dev}"
+    artifacts:
+      - client/gui/dist/*.dmg
