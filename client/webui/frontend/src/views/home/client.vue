@@ -11,7 +11,7 @@ const state = ref({
       key: '',
       name: '',
       tls: 1,
-      address: 'gostc.linux66.cn',
+      address: 'gostc.shop',
       autoStart:0,
     },
     dataRules: {
@@ -26,7 +26,7 @@ const state = ref({
       key: '',
       name: '',
       tls: 1,
-      address: 'gostc.linux66.cn',
+      address: 'gostc.shop',
       autoStart:0,
     },
     dataRules: {
@@ -52,7 +52,7 @@ const openCreateModal = () => {
     key: '',
     name: '',
     tls: 1,
-    address: 'gostc.linux66.cn',
+    address: 'gostc.shop',
     autoStart:0,
   }
   state.value.create.open = true

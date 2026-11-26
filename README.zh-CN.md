@@ -4,7 +4,7 @@
 
 基于 FRP 开发的内网穿透管理平台，支持多用户、多节点，支持速率限制，中心化配置，通过网页修改配置，实时生效。
 
-**当前平台地址：<https://gostc.linux66.cn/>**
+**当前平台地址：<https://gostc.shop/>**
 
 ## 功能特性
 
@@ -25,7 +25,7 @@
 
 ## 文档
 
-详细教程：<https://gostc.linux66.cn/docs/>
+详细教程：<https://gostc.shop/docs/>
 
 ## 目录结构
 
@@ -108,10 +108,10 @@ rm -rf /usr/local/gostc-admin/server
 
 ```shell
 # 节点
-./gostc -addr gostc.linux66.cn -s -key ******
+./gostc -addr gostc.shop -s -key ******
 
 # 客户端
-./gostc -addr gostc.linux66.cn -key ******
+./gostc -addr gostc.shop -key ******
 ```
 
 如果自建的后台管理服务不启用 SSL，需要设置 `--tls=false`，并将 `-addr` 指向实际的服务端地址，例如：

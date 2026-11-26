@@ -74,8 +74,8 @@ overriding the defaults below. The remaining keys are set in the plugin row's
 | `backend` | `http://127.0.0.1:18080` | Base URL of the gostc webui backend to probe / proxy. |
 | `username` | `` | Optional HTTP Basic auth user for the backend (CLI `-web-user`). |
 | `password` | `` | Optional HTTP Basic auth password for the backend (CLI `-web-pwd`). |
-| `platformUrl` | `` | Your gostc platform base URL used to download the CLI installer. Empty disables auto-download. |
-| `clientPackage` | `` | Exact installer filename in the platform `downloads` dir; empty auto-picks the Windows CLI package. |
+| `platformUrl` | `https://gostc.shop` | Your gostc platform base URL used to download the CLI installer (default: the official platform `https://gostc.shop`). Empty disables auto-download. |
+| `clientPackage` | `` | Exact installer filename in the platform `downloads` dir; empty auto-picks the CLI package matching the host OS / CPU arch. |
 | `dataDir` | `` | Install / data directory; empty defaults to `%LOCALAPPDATA%/dsh-gostc`. |
 | `webAddr` | `127.0.0.1:18080` | webui listen address used when the plugin launches the client. |
 | `webUser` | `` | Optional webui Basic auth user set on the launched client. |

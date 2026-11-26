@@ -21,7 +21,7 @@ const MAX_LOG = 8000;
 const MAX_RESTARTS = 3;
 const SETTINGS_KEYS = ['platformUrl', 'clientPackage', 'webAddr', 'webUser', 'webPwd', 'autoStart', 'contactEmail', 'contactQQ', 'contactWeChat'];
 /** Official gostc platform; used as the default download source / homepage. */
-export const DEFAULT_PLATFORM_URL = 'https://gostc.linux66.cn';
+export const DEFAULT_PLATFORM_URL = 'https://gostc.shop';
 
 function defaultDataDir() {
   const local = process.env.LOCALAPPDATA;

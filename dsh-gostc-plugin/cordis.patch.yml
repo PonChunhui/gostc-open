@@ -8,8 +8,8 @@
         username: ''
         password: ''
         # 你的 gostc 平台（服务端）地址，用于下载命令版客户端安装包。
-        # 默认官方平台 https://gostc.linux66.cn ；可改为你自己的平台地址。
-        platformUrl: 'https://gostc.linux66.cn'
+        # 默认官方平台 https://gostc.shop ；可改为你自己的平台地址。
+        platformUrl: 'https://gostc.shop'
         # 指定 downloads 目录中的安装包文件名；留空则自动挑选 Windows CLI 包
         clientPackage: ''
         # 客户端安装/数据目录；留空默认 %LOCALAPPDATA%/dsh-gostc

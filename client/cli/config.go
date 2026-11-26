@@ -60,13 +60,13 @@ func loadConfig(file string) error {
 func configExample() {
 	cfg := Config{
 		Clients: []ClientCfg{
-			{Key: uuid.NewString(), Remark: "客户端1", Tls: true, Address: "gostc.linux66.cn"},
+			{Key: uuid.NewString(), Remark: "客户端1", Tls: true, Address: "gostc.shop"},
 		},
 		Tunnels: []TunnelCfg{
-			{Key: uuid.NewString(), Bind: "127.0.0.1", Port: 8080, Remark: "私有隧道1", Tls: true, Address: "gostc.linux66.cn"},
+			{Key: uuid.NewString(), Bind: "127.0.0.1", Port: 8080, Remark: "私有隧道1", Tls: true, Address: "gostc.shop"},
 		},
 		P2Ps: []P2PCfg{
-			{Key: uuid.NewString(), Bind: "0.0.0.0", Port: 8081, Remark: "P2P隧道1", Tls: true, Address: "gostc.linux66.cn"},
+			{Key: uuid.NewString(), Bind: "0.0.0.0", Port: 8081, Remark: "P2P隧道1", Tls: true, Address: "gostc.shop"},
 		},
 	}
 	marshal, _ := yaml.Marshal(cfg)

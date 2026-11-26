@@ -13,7 +13,7 @@ const state = ref({
       bind: '',
       port: '',
       tls: 1,
-      address: 'gostc.linux66.cn',
+      address: 'gostc.shop',
       autoStart:0,
     },
     dataRules: {
@@ -31,7 +31,7 @@ const state = ref({
       bind: '',
       port: '',
       tls: 1,
-      address: 'gostc.linux66.cn',
+      address: 'gostc.shop',
       autoStart:0,
     },
     dataRules: {
@@ -60,7 +60,7 @@ const openCreateModal = () => {
     bind: '',
     port: '',
     tls: 1,
-    address: 'gostc.linux66.cn',
+    address: 'gostc.shop',
     autoStart:0,
   }
   state.value.create.open = true

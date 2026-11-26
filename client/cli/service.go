@@ -67,7 +67,7 @@ func selectMode(cfgFile string, isServer, isVisit, isP2P bool, webAddress string
 func (p *program) run() {
 	// 管理端地址
 	var address string
-	flag.StringVar(&address, "addr", "gostc.linux66.cn", "server address,example: gostc.linux66.cn")
+	flag.StringVar(&address, "addr", "gostc.shop", "server address,example: gostc.shop")
 	var tlsEnable bool
 	flag.BoolVar(&tlsEnable, "tls", true, "enable tls")
 

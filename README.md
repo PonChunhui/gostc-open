@@ -4,7 +4,7 @@
 
 An intranet penetration management platform built on FRP. It supports multiple users and multiple nodes, rate limiting, centralized configuration, and web-based management with changes applied in real time.
 
-**Current platform: <https://gostc.linux66.cn/>**
+**Current platform: <https://gostc.shop/>**
 
 ## Features
 
@@ -25,7 +25,7 @@ An intranet penetration management platform built on FRP. It supports multiple u
 
 ## Documentation
 
-Detailed guides: <https://gostc.linux66.cn/docs/>
+Detailed guides: <https://gostc.shop/docs/>
 
 ## Directory Structure
 
@@ -108,10 +108,10 @@ rm -rf /usr/local/gostc-admin/server
 
 ```shell
 # node
-./gostc -addr gostc.linux66.cn -s -key ******
+./gostc -addr gostc.shop -s -key ******
 
 # client
-./gostc -addr gostc.linux66.cn -key ******
+./gostc -addr gostc.shop -key ******
 ```
 
 For a self-hosted server without SSL, set `--tls=false` and point `-addr` to your own server, e.g.:

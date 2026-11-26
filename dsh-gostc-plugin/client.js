@@ -53,7 +53,7 @@ window.__ModuleLoader__.load({
         tabAbout: '关于', aboutOfficial: '官网主页', aboutOfficialHint: '点击链接可直接跳转 gostc 官方平台（注册 / 登录 / 获取密钥 / 管理节点）。',
         aboutTagline: '在 DeepSeek Harness 里管理 gostc 内网穿透：自动下载并拉起客户端，管理客户端 / 隧道 / P2P 与日志。',
         aboutGuide: '快速上手', aboutLinks: '文档与源码', aboutContact: '联系与反馈', aboutEnv: '环境信息', aboutTips: '常见提示',
-        guide1: '在「后端进程 → 设置」确认平台地址（默认 https://gostc.linux66.cn），按需改成你自己的平台并保存。',
+        guide1: '在「后端进程 → 设置」确认平台地址（默认 https://gostc.shop），按需改成你自己的平台并保存。',
         guide2: '点「下载客户端」按当前系统 / 架构自动安装命令版客户端，再点「启动」；若已有健康后端会自动复用，无需重复拉起。',
         guide3: '在「客户端」页新增连接：填名称、服务端地址与连接密钥（官网「客户端 → 连接密钥」获取），打开开关即建立穿透。',
         guide4: '需要把本地服务暴露到公网时，在「隧道」或「P2P」页新增条目并启动；公网地址见卡片上的「地址2」。',
@@ -116,7 +116,7 @@ window.__ModuleLoader__.load({
         tabAbout: 'About', aboutOfficial: 'Official website', aboutOfficialHint: 'Click to open the gostc platform (sign up / sign in / get keys / manage nodes).',
         aboutTagline: 'Manage gostc intranet penetration inside DeepSeek Harness: auto-download and launch the client, manage clients / tunnels / P2P and logs.',
         aboutGuide: 'Quick start', aboutLinks: 'Docs & source', aboutContact: 'Contact & feedback', aboutEnv: 'Environment', aboutTips: 'Tips',
-        guide1: 'In Backend → Settings confirm the platform URL (default https://gostc.linux66.cn); change it to your own platform if needed and save.',
+        guide1: 'In Backend → Settings confirm the platform URL (default https://gostc.shop); change it to your own platform if needed and save.',
         guide2: 'Click Download client to auto-install the CLI for your OS/arch, then Start. A healthy existing backend is reused automatically.',
         guide3: 'On the Clients tab add a connection: name, server address and key (from the website "Clients → key"); flip the switch to tunnel.',
         guide4: 'To expose a local service publicly, add an entry on the Tunnel or P2P tab and start it; the public address is shown as "address 2".',
@@ -150,10 +150,10 @@ window.__ModuleLoader__.load({
 
     const KINDS = ['client', 'tunnel', 'p2p'];
     const TAB_LABEL = { client: 'tabClient', tunnel: 'tabTunnel', p2p: 'tabP2p', logger: 'tabLogger', process: 'tabProcess', about: 'tabAbout' };
-    const OFFICIAL_URL = 'https://gostc.linux66.cn';
+    const OFFICIAL_URL = 'https://gostc.shop';
     const UPSTREAM_REPO = 'https://github.com/SianHH/gostc-open';
     const PLUGIN_REPO = 'https://github.com/PonChunhui/dsh-gostc';
-    const PLUGIN_VERSION = '1.4.4';
+    const PLUGIN_VERSION = '1.4.5';
 
     // ---- API helper: document-relative fetch through the Host proxy ----
     async function api(sub, body) {
@@ -173,7 +173,7 @@ window.__ModuleLoader__.load({
     }
 
     function defaultsFor(kind) {
-      const base = { name: '', key: '', address: 'gostc.linux66.cn', tls: 1, autoStart: 0 };
+      const base = { name: '', key: '', address: 'gostc.shop', tls: 1, autoStart: 0 };
       if (kind === 'client') return base;
       return Object.assign(base, { bind: '0.0.0.0', port: '8080' });
     }

@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-gostc",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "private": true,
   "type": "module",
   "description": "Gostc intranet-penetration client manager for the DeepSeek Harness web client.",

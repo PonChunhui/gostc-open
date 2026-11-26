@@ -3,6 +3,14 @@
 All notable changes to the **dsh-gostc** DeepSeek Harness plugin are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [1.4.5] - 2026-11-26
+
+### Changed
+- Switched the official platform / server address and the client default domain
+  from `gostc.linux66.cn` to **`gostc.shop`** everywhere it is shown or used as a
+  default: About page official link + deep links, Backend settings default
+  `platformUrl`, new-client default `address`, help docs and config defaults.
+
 ## [1.4.4] - 2026-11-26
 
 ### Fixed

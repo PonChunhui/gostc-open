@@ -16,6 +16,7 @@
 /client/gostc-cli.exe
 /client/gostc-gui.exe
 /client/gostc-linux-*
+/client/gostc-darwin-*
 /client/data
 /client/gui/dist/
 
