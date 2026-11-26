@@ -45,3 +45,10 @@ debug.log
 /.build-tools
 /dsh-gostc-publish
 debug.log
+
+# 本地交叉编译产物与敏感文件（不入库）
+/server/server_linux_amd64
+/client/gostc_linux_amd64
+/client/gostc_macos_arm.dmg
+/web/dist.zip
+bili_cookies.txt
