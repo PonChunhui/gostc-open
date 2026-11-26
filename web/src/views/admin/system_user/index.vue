@@ -14,6 +14,7 @@ import SearchItem from "../../../layout/components/SearchItem.vue";
 import {generateTableColumns} from "./tableColumns.js";
 import Modal from "../../../components/Modal.vue";
 import {requiredRule} from "../../../utils/formDataRule.js";
+import moment from "moment";
 
 const state = ref({
   table: {
@@ -27,7 +28,7 @@ const state = ref({
     },
     list: [],
     total: 0,
-    minWidth: 1480,
+    minWidth: 1670,
   },
   create: {
     open: false,
@@ -56,6 +57,7 @@ const state = ref({
       admin: 2,
       remark: '',
       groupCode: '',
+      groupExpAt: null,
     },
     dataRules: {
       account: requiredRule('账号不能为空'),
@@ -118,6 +120,7 @@ const openUpdate = (row) => {
     admin: row.admin,
     remark: row.remark || '',
     groupCode: row.groupCode || '',
+    groupExpAt: row.groupExpAt ? moment(row.groupExpAt).unix() * 1000 : null,
   }
 }
 
@@ -147,7 +150,10 @@ const updateFunc = () => {
     if (!valid) {
       try {
         state.value.update.loading = true
-        await apiAdminSystemUserUpdate(state.value.update.data)
+        await apiAdminSystemUserUpdate({
+          ...state.value.update.data,
+          groupExpAt: state.value.update.data.groupExpAt ? Math.floor(state.value.update.data.groupExpAt / 1000) : 0,
+        })
         searchTable()
         closeUpdate()
       } finally {
@@ -372,6 +378,18 @@ onBeforeMount(() => {
               v-model:value="state.update.data.groupCode"
               :options="groupOptions"
           ></n-select>
+        </n-form-item>
+        <n-form-item path="groupExpAt" label="用户组到期时间">
+          <n-space vertical style="width: 100%">
+            <n-date-picker
+                v-model:value="state.update.data.groupExpAt"
+                type="datetime"
+                clearable
+                placeholder="留空表示永久"
+                style="width: 100%"
+            ></n-date-picker>
+            <span style="font-size: 12px; color: #999">到期后自动回落原用户组，留空表示永久</span>
+          </n-space>
         </n-form-item>
         <n-form-item path="remark" label="备注">
           <n-input

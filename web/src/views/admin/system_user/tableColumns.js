@@ -45,6 +45,25 @@ export function generateTableColumns(
             }
         },
         {
+            title: '到期时间',
+            key: 'groupExpAt',
+            width: 190,
+            render(row) {
+                if (!row.groupExpAt) {
+                    return h(NTag, {size: 'small'}, {
+                        default: () => '永久'
+                    })
+                }
+                if (row.prevGroupName) {
+                    return h(NTooltip, {}, {
+                        trigger: () => h('span', {}, row.groupExpAt),
+                        default: () => `到期后回落：${row.prevGroupName}`
+                    })
+                }
+                return row.groupExpAt
+            }
+        },
+        {
             title: '流量(IN|OUT)',
             ellipsis: {tooltip: true},
             width: 190, render(row) {

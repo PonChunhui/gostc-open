@@ -18,19 +18,21 @@ type PageReq struct {
 }
 
 type Item struct {
-	Code        string          `json:"code"`
-	Account     string          `json:"account"`
-	Admin       int             `json:"admin"`
-	Amount      decimal.Decimal `json:"amount"`
-	Remark      string          `json:"remark"`
-	Email       string          `json:"email"`
-	CreatedAt   string          `json:"createdAt"`
-	InputBytes  int64           `json:"inputBytes"`
-	OutputBytes int64           `json:"outputBytes"`
-	GroupCode   string          `json:"groupCode"`
-	GroupName   string          `json:"groupName"`
-	Status      int             `json:"status"`
-	BanReason   string          `json:"banReason"`
+	Code          string          `json:"code"`
+	Account       string          `json:"account"`
+	Admin         int             `json:"admin"`
+	Amount        decimal.Decimal `json:"amount"`
+	Remark        string          `json:"remark"`
+	Email         string          `json:"email"`
+	CreatedAt     string          `json:"createdAt"`
+	InputBytes    int64           `json:"inputBytes"`
+	OutputBytes   int64           `json:"outputBytes"`
+	GroupCode     string          `json:"groupCode"`
+	GroupName     string          `json:"groupName"`
+	GroupExpAt    string          `json:"groupExpAt"`
+	PrevGroupName string          `json:"prevGroupName"`
+	Status        int             `json:"status"`
+	BanReason     string          `json:"banReason"`
 }
 
 func (service *service) Page(req PageReq) (list []Item, total int64) {
@@ -53,20 +55,26 @@ func (service *service) Page(req PageReq) (list []Item, total int64) {
 	}
 	for _, user := range users {
 		obsInfo := cache.GetUserObsDateRange(cache.MONTH_DATEONLY_LIST, user.Code)
+		var groupExpAt string
+		if user.GroupExpAt > 0 {
+			groupExpAt = time.Unix(user.GroupExpAt, 0).Format(time.DateTime)
+		}
 		list = append(list, Item{
-			Code:        user.Code,
-			Account:     user.Account,
-			Admin:       user.Admin,
-			Amount:      user.Amount,
-			Remark:      user.Remark,
-			Email:       user.BindEmail.Email,
-			CreatedAt:   user.CreatedAt.Format(time.DateTime),
-			InputBytes:  obsInfo.InputBytes,
-			OutputBytes: obsInfo.OutputBytes,
-			GroupCode:   user.GroupCode,
-			GroupName:   groupNames[user.GroupCode],
-			Status:      user.Status,
-			BanReason:   user.BanReason,
+			Code:          user.Code,
+			Account:       user.Account,
+			Admin:         user.Admin,
+			Amount:        user.Amount,
+			Remark:        user.Remark,
+			Email:         user.BindEmail.Email,
+			CreatedAt:     user.CreatedAt.Format(time.DateTime),
+			InputBytes:    obsInfo.InputBytes,
+			OutputBytes:   obsInfo.OutputBytes,
+			GroupCode:     user.GroupCode,
+			GroupName:     groupNames[user.GroupCode],
+			GroupExpAt:    groupExpAt,
+			PrevGroupName: groupNames[user.PrevGroupCode],
+			Status:        user.Status,
+			BanReason:     user.BanReason,
 		})
 	}
 	return list, total
