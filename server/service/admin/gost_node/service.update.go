@@ -37,6 +37,7 @@ type UpdateReq struct {
 	LimitResetIndex int `json:"limitResetIndex"`
 	LimitTotal      int `json:"limitTotal"`
 	LimitKind       int `json:"limitKind"`
+	TunnelLimit     int `json:"tunnelLimit"`
 }
 
 func (service *service) Update(req UpdateReq) error {
@@ -74,6 +75,7 @@ func (service *service) Update(req UpdateReq) error {
 	node.LimitResetIndex = req.LimitResetIndex
 	node.LimitTotal = req.LimitTotal
 	node.LimitKind = req.LimitKind
+	node.TunnelLimit = req.TunnelLimit
 	// 生成新的指纹
 	newFingerprint := node.GenerateFingerprint()
 	if oldFingerprint == newFingerprint {

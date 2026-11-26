@@ -41,6 +41,7 @@ type GostNode struct {
 	LimitResetIndex    int              `gorm:"column:limit_reset_index;comment:重置日期索引"`
 	LimitTotal         int              `gorm:"column:limit_total;comment:预警流量(GB)"`
 	LimitKind          int              `gorm:"column:limit_kind;size:1;default:0;comment:限制方式"`
+	TunnelLimit        int              `gorm:"column:tunnel_limit;default:0;comment:隧道数量上限，0表示不限制"`
 }
 
 // 生成更新指纹，对比指纹判断是否需要标记更新

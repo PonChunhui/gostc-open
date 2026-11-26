@@ -60,6 +60,7 @@ func newGostNode(db *gorm.DB, opts ...gen.DOOption) gostNode {
 	_gostNode.LimitResetIndex = field.NewInt(tableName, "limit_reset_index")
 	_gostNode.LimitTotal = field.NewInt(tableName, "limit_total")
 	_gostNode.LimitKind = field.NewInt(tableName, "limit_kind")
+	_gostNode.TunnelLimit = field.NewInt(tableName, "tunnel_limit")
 	_gostNode.Configs = gostNodeHasManyConfigs{
 		db: db.Session(&gorm.Session{}),
 
@@ -120,6 +121,7 @@ type gostNode struct {
 	LimitResetIndex    field.Int    // 重置日期索引
 	LimitTotal         field.Int    // 预警流量(GB)
 	LimitKind          field.Int    // 限制方式
+	TunnelLimit        field.Int    // 隧道数量上限，0表示不限制
 	Configs            gostNodeHasManyConfigs
 
 	fieldMap map[string]field.Expr
@@ -169,6 +171,7 @@ func (g *gostNode) updateTableName(table string) *gostNode {
 	g.LimitResetIndex = field.NewInt(table, "limit_reset_index")
 	g.LimitTotal = field.NewInt(table, "limit_total")
 	g.LimitKind = field.NewInt(table, "limit_kind")
+	g.TunnelLimit = field.NewInt(table, "tunnel_limit")
 
 	g.fillFieldMap()
 
@@ -185,7 +188,7 @@ func (g *gostNode) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (g *gostNode) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 33)
+	g.fieldMap = make(map[string]field.Expr, 34)
 	g.fieldMap["id"] = g.Id
 	g.fieldMap["code"] = g.Code
 	g.fieldMap["allow_edit"] = g.AllowEdit
@@ -218,6 +221,7 @@ func (g *gostNode) fillFieldMap() {
 	g.fieldMap["limit_reset_index"] = g.LimitResetIndex
 	g.fieldMap["limit_total"] = g.LimitTotal
 	g.fieldMap["limit_kind"] = g.LimitKind
+	g.fieldMap["tunnel_limit"] = g.TunnelLimit
 
 }
 

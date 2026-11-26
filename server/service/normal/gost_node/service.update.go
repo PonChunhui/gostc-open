@@ -38,6 +38,7 @@ type UpdateReq struct {
 	LimitTotal      int `json:"limitTotal"`
 	LimitKind       int `json:"limitKind"`
 	MaxPoolCount    int `json:"maxPoolCount"`
+	TunnelLimit     int `json:"tunnelLimit"`
 }
 
 func (service *service) Update(claims jwt.Claims, req UpdateReq) error {
@@ -78,6 +79,7 @@ func (service *service) Update(claims jwt.Claims, req UpdateReq) error {
 	node.LimitResetIndex = req.LimitResetIndex
 	node.LimitTotal = req.LimitTotal
 	node.LimitKind = req.LimitKind
+	node.TunnelLimit = req.TunnelLimit
 
 	if err := db.GostNode.Save(node); err != nil {
 		log.Error("修改节点失败", zap.Error(err))

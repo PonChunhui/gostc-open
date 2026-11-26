@@ -7,6 +7,7 @@ import (
 	"server/pkg/utils"
 	"server/repository"
 	cache2 "server/repository/cache"
+	"server/service/common/node_load"
 	"server/service/common/node_rule"
 	"time"
 )
@@ -57,6 +58,10 @@ type Item struct {
 	LimitUseTotal   int64 `json:"limitUseTotal"`
 	LimitKind       int   `json:"limitKind"`
 	MaxPoolCount    int   `json:"maxPoolCount"`
+
+	TunnelLimit int             `json:"tunnelLimit"` // 隧道数量上限，0表示不限制
+	TunnelCount int64           `json:"tunnelCount"` // 已分配隧道数量
+	Load        cache2.NodeLoad `json:"load"`        // 节点实时负载
 }
 
 func (service *service) Page(req PageReq) (list []Item, total int64) {
@@ -77,6 +82,7 @@ func (service *service) Page(req PageReq) (list []Item, total int64) {
 		where = append(where, db.GostNode.Code.NotIn(nodeCodes...))
 	}
 	nodes, total, _ := db.GostNode.Where(where...).Order(db.GostNode.IndexValue.Asc(), db.GostNode.Id.Desc()).FindByPage(req.GetOffset(), req.GetLimit())
+	tunnelCounts := node_load.CountTunnelsByNode(db)
 
 	// 查询节点的绑定用户
 	nodeBinds, _ := db.GostNodeBind.Preload(db.GostNodeBind.User).Find()
@@ -149,6 +155,9 @@ func (service *service) Page(req PageReq) (list []Item, total int64) {
 			LimitUseTotal:      obsUseTotal,
 			LimitKind:          node.LimitKind,
 			MaxPoolCount:       node.MaxPoolCount,
+			TunnelLimit:        node.TunnelLimit,
+			TunnelCount:        tunnelCounts[node.Code],
+			Load:               cache2.GetNodeLoad(node.Code),
 		})
 	}
 	return list, total

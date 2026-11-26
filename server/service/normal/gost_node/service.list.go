@@ -6,6 +6,7 @@ import (
 	"server/pkg/utils"
 	"server/repository"
 	"server/repository/cache"
+	"server/service/common/node_load"
 	"server/service/common/node_rule"
 	"server/service/common/user_group"
 )
@@ -34,6 +35,10 @@ type ListItem struct {
 	Online       int              `json:"online"`
 	CustomDomain int              `json:"customDomain"`
 	MaxPoolCount int              `json:"maxPoolCount"`
+
+	TunnelLimit int            `json:"tunnelLimit"` // 隧道数量上限，0表示不限制
+	TunnelCount int64          `json:"tunnelCount"` // 已分配隧道数量
+	Load        cache.NodeLoad `json:"load"`        // 节点实时负载
 }
 
 type ListItemConfig struct {
@@ -72,6 +77,7 @@ func (service *service) List(claims jwt.Claims, req ListReq) (list []ListItem) {
 		where = append(where, db.GostNode.Code.NotIn(myNodeCodes...))
 	}
 	nodes, _ := db.GostNode.Preload(db.GostNode.Configs.Order(db.GostNodeConfig.IndexValue.Asc())).Where(where...).Order(db.GostNode.IndexValue.Asc(), db.GostNode.Id.Desc()).Find()
+	tunnelCounts := node_load.CountTunnelsByNode(db)
 	for _, node := range nodes {
 		if len(node.Configs) == 0 {
 			continue
@@ -123,6 +129,9 @@ func (service *service) List(claims jwt.Claims, req ListReq) (list []ListItem) {
 			Online:             utils.TrinaryOperation(cache.GetNodeOnline(node.Code), 1, 2),
 			CustomDomain:       utils.TrinaryOperation(cache.GetNodeCustomDomain(node.Code), 1, 2),
 			MaxPoolCount:       node.MaxPoolCount,
+			TunnelLimit:        node.TunnelLimit,
+			TunnelCount:        tunnelCounts[node.Code],
+			Load:               cache.GetNodeLoad(node.Code),
 		})
 	}
 	return list

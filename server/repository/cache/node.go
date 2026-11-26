@@ -14,7 +14,28 @@ const (
 	node_custom_domain_key = "node:custom:domain:"
 	node_cache_key         = "node:cache:"
 	node_info_key          = "node:info:"
+	node_load_key          = "node:load:"
 )
+
+// NodeLoad 节点实时负载，由节点客户端定时上报
+type NodeLoad struct {
+	ClientCount     int64 `json:"clientCount"`     // 在线客户端数量
+	TunnelCount     int64 `json:"tunnelCount"`     // 运行中的隧道数量
+	ConnectionCount int64 `json:"connectionCount"` // 活跃连接数量
+}
+
+func SetNodeLoad(code string, data NodeLoad, duration time.Duration) {
+	global.Cache.SetStruct(node_load_key+code, data, duration)
+}
+
+func GetNodeLoad(code string) (result NodeLoad) {
+	_ = global.Cache.GetStruct(node_load_key+code, &result)
+	return result
+}
+
+func DelNodeLoad(code string) {
+	global.Cache.Del(node_load_key + code)
+}
 
 type NodeInfo struct {
 	Code            string

@@ -39,6 +39,7 @@ type CreateReq struct {
 	LimitTotal      int `json:"limitTotal"`
 	LimitKind       int `json:"limitKind"`
 	MaxPoolCount    int `json:"maxPoolCount"`
+	TunnelLimit     int `json:"tunnelLimit"`
 }
 
 func (service *service) Create(claims jwt.Claims, req CreateReq) error {
@@ -77,6 +78,7 @@ func (service *service) Create(claims jwt.Claims, req CreateReq) error {
 			LimitTotal:         req.LimitTotal,
 			LimitResetIndex:    req.LimitResetIndex,
 			MaxPoolCount:       req.MaxPoolCount,
+			TunnelLimit:        req.TunnelLimit,
 		}
 		if err := tx.GostNode.Create(&node); err != nil {
 			log.Error("新增节点失败", zap.Error(err))

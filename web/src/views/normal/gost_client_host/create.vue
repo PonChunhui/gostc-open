@@ -10,6 +10,7 @@ import {apiNormalGostNodeList} from "../../../api/normal/gost_node.js";
 import {cLimiterText, configText, limitTotalText, limiterText, rLimiterText} from "./index.js";
 import {apiNormalGostClientList} from "../../../api/normal/gost_client.js";
 import Online from "../../../icon/online.vue";
+import {nodeFull, nodeTunnelText, nodeLoadText} from "../../../utils/nodeLoad.js";
 
 
 const state = ref({
@@ -85,11 +86,12 @@ const nodeListFunc = async () => {
       return item.web === 1
     })
     state.value.data.nodeCode = ''
-    if (state.value.nodes.length > 0) {
-      state.value.data.nodeCode = state.value.nodes[0].code
+    const availableNodes = state.value.nodes.filter(item => !nodeFull(item))
+    if (availableNodes.length > 0) {
+      state.value.data.nodeCode = availableNodes[0].code
     }
     if (state.value.data.nodeCode === '') {
-      $message.create('暂无节点信息', {
+      $message.create(state.value.nodes.length > 0 ? '节点均已满载，请选择其他节点' : '暂无节点信息', {
         type: "warning",
         closable: true,
         duration: 1500,
@@ -157,20 +159,25 @@ onBeforeMount(() => {
           <n-grid x-gap="12" y-gap="12" cols="550:2 800:3 1400:4 1">
             <n-grid-item v-for="nodeItem in state.nodes">
               <n-alert
-                  type="info"
+                  :type="nodeFull(nodeItem) ? 'warning' : 'info'"
                   :show-icon="false"
                   :bordered="false"
                   style="height: 100%;cursor: pointer"
-                  @click="state.data.nodeCode = nodeItem.code"
+                  @click="!nodeFull(nodeItem) ? state.data.nodeCode = nodeItem.code : null"
               >
                 <n-radio
                     :key="nodeItem.code"
                     :value="nodeItem.code"
+                    :disabled="nodeFull(nodeItem)"
                     style="width: 100%;"
                 >
                   <n-space justify="space-between" style="width: 100%">
                     <Online :online="nodeItem.online===1"></Online>
                     <span>{{ nodeItem.name }}</span>
+                  </n-space>
+                  <n-space justify="space-between" style="width: 100%;margin-top: 4px" :size="4">
+                    <span style="font-size: 12px;color: #999">隧道 {{ nodeTunnelText(nodeItem) }}</span>
+                    <n-tag v-if="nodeFull(nodeItem)" type="warning" size="small" :bordered="false">满载</n-tag>
                   </n-space>
                 </n-radio>
               </n-alert>
@@ -194,6 +201,12 @@ onBeforeMount(() => {
           <n-space>
             <span>规则：</span>
             <n-tag type="info" size="small" bordered v-for="rule in state.node.ruleNames">{{ rule }}</n-tag>
+          </n-space>
+          <n-space>
+            <span>负载：</span>
+            <span>隧道 {{ nodeTunnelText(state.node) }}</span>
+            <n-tag v-if="nodeFull(state.node)" type="warning" size="small" bordered>满载</n-tag>
+            <span>{{ nodeLoadText(state.node) }}</span>
           </n-space>
           <n-space>
             <span>绑定域名：</span>

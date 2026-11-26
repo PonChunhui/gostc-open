@@ -14,6 +14,7 @@ import Modal from "../../../components/Modal.vue";
 import {requiredRule} from "../../../utils/formDataRule.js";
 import {protocols} from "./protocols.js"
 import {flowFormat} from "../../../utils/flow.js";
+import {nodeFull, nodeTunnelText, nodeLoadText} from "../../../utils/nodeLoad.js";
 import {NButton, NPopconfirm, NSpace} from "naive-ui";
 import Empty from "../../../components/Empty.vue";
 import {goToUrl} from "../../../utils/browser.js";
@@ -62,6 +63,7 @@ const state = ref({
       limitTotal: 1,
       limitKind: 0,
       maxPoolCount: 10,
+      tunnelLimit: 0,
     },
     dataRules: {
       name: requiredRule('请输入名称'),
@@ -97,6 +99,7 @@ const state = ref({
       limitTotal: 1,
       limitKind: 0,
       maxPoolCount: 10,
+      tunnelLimit: 0,
     },
     dataRules: {
       name: requiredRule('请输入名称'),
@@ -159,6 +162,7 @@ const openCreate = () => {
     limitTotal: 1,
     limitKind: 0,
     maxPoolCount: 10,
+    tunnelLimit: 0,
   }
   state.value.create.open = true
 }
@@ -326,7 +330,7 @@ const generateCmdString = () => {
           <n-button
               :focusable="false"
               type="warning"
-              @click="goToUrl('https://docs.sian.one/gostc/node')">
+              @click="goToUrl('/docs/#/features?id=%e6%88%91%e7%9a%84%e8%8a%82%e7%82%b9')">
             自建教程
           </n-button>
         </n-space>
@@ -363,6 +367,8 @@ const generateCmdString = () => {
                   flowFormat(row.inputBytes) + ' | ' + flowFormat(row.outputBytes)
                 }}</span><br>
               <span>代理隧道：{{ row.proxy === 1 ? '启用' : '禁用' }}</span><br>
+              <span>隧道用量：{{ nodeTunnelText(row) }}{{ nodeFull(row) ? '（满载）' : '' }}</span><br>
+              <span>实时负载：{{ nodeLoadText(row) }}</span><br>
               <n-tabs animated size="small">
                 <n-tab-pane name="web" tab="域名解析">
                   <span>访问端口：{{ row.httpPort }}</span><br>
@@ -458,6 +464,9 @@ const generateCmdString = () => {
         </n-form-item>
         <n-form-item path="maxPoolCount" label="最大复用连接数量">
           <n-input-number v-model:value="state.create.data.maxPoolCount" :min="0"></n-input-number>
+        </n-form-item>
+        <n-form-item path="tunnelLimit" label="隧道数量上限(0表示不限制)">
+          <n-input-number v-model:value="state.create.data.tunnelLimit" :min="0"></n-input-number>
         </n-form-item>
         <n-form-item label="功能">
           <n-space>
@@ -628,6 +637,9 @@ const generateCmdString = () => {
         </n-form-item>
         <n-form-item path="maxPoolCount" label="最大复用连接数量">
           <n-input-number v-model:value="state.update.data.maxPoolCount" :min="0"></n-input-number>
+        </n-form-item>
+        <n-form-item path="tunnelLimit" label="隧道数量上限(0表示不限制)">
+          <n-input-number v-model:value="state.update.data.tunnelLimit" :min="0"></n-input-number>
         </n-form-item>
         <n-form-item label="功能">
           <n-space>

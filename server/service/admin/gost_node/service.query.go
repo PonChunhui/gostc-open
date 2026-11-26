@@ -39,6 +39,8 @@ type QueryResp struct {
 	Tags         []string `json:"tags"`
 
 	IndexValue int `json:"indexValue"`
+
+	TunnelLimit int `json:"tunnelLimit"`
 }
 
 func (service *service) Query(req QueryReq) (QueryResp, error) {
@@ -74,5 +76,6 @@ func (service *service) Query(req QueryReq) (QueryResp, error) {
 		Rules:              node.GetRules(),
 		RuleNames:          ruleNames,
 		Tags:               node.GetTags(),
+		TunnelLimit:        node.TunnelLimit,
 	}, nil
 }

@@ -47,6 +47,7 @@ func InitFrp(ginEngine *gin.Engine, ln net.Listener) {
 		if ok {
 			cache3.SetClientOnline(code.(string), false, cache2.NoExpiration)
 			cache3.SetNodeOnline(code.(string), false, cache2.NoExpiration)
+			cache3.DelNodeLoad(code.(string))
 		}
 	})
 	rpcServer.Handler.HandleMessageDone(func(c *arpc.Client, m *arpc.Message) {
@@ -65,6 +66,23 @@ func InitFrp(ginEngine *gin.Engine, ln net.Listener) {
 		code, ok := c.Client.Get("code")
 		if ok {
 			cache3.SetNodeOnline(code.(string), true, cache2.NoExpiration)
+		}
+		_ = c.Write("success")
+	})
+	rpcServer.Handler.Handle("rpc/node/load", func(c *arpc.Context) {
+		var req NodeLoadReq
+		if err := c.Bind(&req); err != nil {
+			_ = c.Write(err.Error())
+			return
+		}
+		code, ok := c.Client.Get("code")
+		if ok {
+			cache3.SetNodeOnline(code.(string), true, cache2.NoExpiration)
+			cache3.SetNodeLoad(code.(string), cache3.NodeLoad{
+				ClientCount:     req.ClientCount,
+				TunnelCount:     req.TunnelCount,
+				ConnectionCount: req.ConnectionCount,
+			}, time.Minute)
 		}
 		_ = c.Write("success")
 	})
@@ -165,6 +183,7 @@ func InitFrp(ginEngine *gin.Engine, ln net.Listener) {
 		cache3.SetNodeVersion(gostNode.Code, version)
 		cache3.SetNodeCustomDomain(gostNode.Code, domain == "1")
 		cache3.SetNodeCache(gostNode.Code, domainCache == "1")
+		cache3.DelNodeLoad(gostNode.Code)
 		client.Set("code", gostNode.Code)
 		engine.NodeConfig(db, gostNode.Code)
 	})
@@ -258,6 +277,12 @@ type TrafficOutput struct {
 	Name      string
 	ProxyType string
 	Total     int64
+}
+
+type NodeLoadReq struct {
+	ClientCount     int64 `json:"clientCount"`
+	TunnelCount     int64 `json:"tunnelCount"`
+	ConnectionCount int64 `json:"connectionCount"`
 }
 
 type HostSetDomainCerts struct {

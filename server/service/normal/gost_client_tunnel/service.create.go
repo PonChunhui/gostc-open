@@ -10,6 +10,7 @@ import (
 	"server/repository"
 	cache2 "server/repository/cache"
 	"server/repository/query"
+	"server/service/common/node_load"
 	"server/service/common/node_rule"
 	"server/service/common/user_group"
 	"server/service/engine"
@@ -56,6 +57,9 @@ func (service *service) Create(claims jwt.Claims, req CreateReq) error {
 		}
 
 		if err := node_rule.VerifyAll(tx, user.Code, node.GetRules()); err != nil {
+			return err
+		}
+		if err := node_load.VerifyTunnelLimit(tx, node); err != nil {
 			return err
 		}
 
