@@ -60,7 +60,8 @@ export const baseRouters = [
         component: () => import('../../views/public/404.vue'),
         meta: {
             title: '404',
-            layout: 'empty'
+            layout: 'empty',
+            hidden: 1,
         }
     }
 ]
