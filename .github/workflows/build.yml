@@ -66,6 +66,39 @@ jobs:
             ./server/dist/*.tar.gz
             ./server/dist/*.zip
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Prepare image tags
+        id: docker_meta
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${TAG#v}"
+          IMAGE="${{ vars.DOCKERHUB_NAMESPACE || secrets.DOCKER_USERNAME }}/gostc-admin"
+          TAGS="${IMAGE}:${TAG}"
+          # 仅稳定版本（无 -beta/-rc 等后缀）追加 latest 标签
+          if [[ "${TAG}" != *-* ]]; then
+            TAGS="${TAGS},${IMAGE}:latest"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push server image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+
   gostc:
     runs-on: ubuntu-latest
     steps:
@@ -94,6 +127,39 @@ jobs:
             ./client/dist/*.tar.gz
             ./client/dist/*.zip
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Prepare image tags
+        id: docker_meta
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${TAG#v}"
+          IMAGE="${{ vars.DOCKERHUB_NAMESPACE || secrets.DOCKER_USERNAME }}/gostc"
+          TAGS="${IMAGE}:${TAG}"
+          # 仅稳定版本（无 -beta/-rc 等后缀）追加 latest 标签
+          if [[ "${TAG}" != *-* ]]; then
+            TAGS="${TAGS},${IMAGE}:latest"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push client image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64,linux/s390x
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+
   proxy:
     runs-on: ubuntu-latest
     steps:
@@ -121,3 +187,36 @@ jobs:
           files: |
             ./proxy/dist/*.tar.gz
             ./proxy/dist/*.zip
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Prepare image tags
+        id: docker_meta
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${TAG#v}"
+          IMAGE="${{ vars.DOCKERHUB_NAMESPACE || secrets.DOCKER_USERNAME }}/gostc-proxy"
+          TAGS="${IMAGE}:${TAG}"
+          # 仅稳定版本（无 -beta/-rc 等后缀）追加 latest 标签
+          if [[ "${TAG}" != *-* ]]; then
+            TAGS="${TAGS},${IMAGE}:latest"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push proxy image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./proxy
+          platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64,linux/s390x
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
