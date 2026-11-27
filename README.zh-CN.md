@@ -27,6 +27,120 @@
 
 详细教程：<https://gostc.shop/docs/>
 
+## 安装部署
+
+提供两种方式：**一键脚本安装（Linux）** 和 **Docker Compose 安装**。安装包与镜像均由本仓库发布：[GitHub Releases](https://github.com/PonChunhui/gostc-open/releases) / [Docker Hub](https://hub.docker.com/u/adonis996)。
+
+### 方式一：一键脚本安装（Linux）
+
+脚本自动识别系统架构，从 GitHub Releases 下载最新发行版并安装。依赖 `bash`、`curl`、`sudo`、`tar`/`unzip`。
+
+**安装管理端（服务端）：**
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/PonChunhui/gostc-open/main/install.sh | bash -s -- server
+```
+
+- 安装到 `/usr/local/gostc-admin/`，并自动注册 systemd 服务 `gostc-admin`
+- 启动：`systemctl start gostc-admin`，浏览器访问 `http://服务器IP:8080`，默认账号密码 `admin/admin`
+- 数据目录：`/usr/local/gostc-admin/data/`（配置、SQLite 数据库、日志）
+
+**安装客户端/节点：**
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/PonChunhui/gostc-open/main/install.sh | bash -s -- gostc
+```
+
+脚本只把二进制安装到 `/usr/local/bin/gostc`，连接服务端需手动执行：
+
+```shell
+# 客户端（运行在被访问的内网机器上）
+gostc -addr gostc.shop -key 连接密钥
+
+# 节点（运行在公网机器上，-s 为节点模式）
+gostc -addr gostc.shop -s -key 节点密钥
+
+# 自建服务端未启用 SSL 时
+gostc --tls=false -addr 服务器IP:8080 -key 连接密钥
+```
+
+注册为系统服务见下文「将客户端/节点注册为服务」一节。
+
+也可以下载 [install.sh](install.sh) 到本地后执行 `bash install.sh server` 或 `bash install.sh gostc`。
+
+### 方式二：Docker Compose 安装
+
+本仓库发布的镜像（打 tag 发布时由 CI 自动构建推送）：
+
+| 镜像 | 说明 | 架构 |
+| --- | --- | --- |
+| `adonis996/gostc-admin` | 管理端（服务端） | amd64 / arm64 |
+| `adonis996/gostc` | 客户端 / 节点 | 386 / amd64 / armv7 / arm64 / s390x |
+| `adonis996/gostc-proxy` | 网关服务（自定义域名，可选） | 386 / amd64 / armv7 / arm64 / s390x |
+
+标签规则：稳定版同时发布 `latest` 和版本号标签（如 `2.0.12`）；预发布版（rc/beta）只发布版本号标签，不覆盖 `latest`。
+
+**1. 部署管理端**
+
+创建 `docker-compose.yml`（仓库根目录已提供现成模板 [docker-compose.yml](docker-compose.yml)）：
+
+```yaml
+services:
+  gostc-admin:
+    image: adonis996/gostc-admin:latest
+    container_name: gostc-admin
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+```
+
+```shell
+docker compose up -d
+```
+
+- 访问 `http://服务器IP:8080`，默认账号密码 `admin/admin`
+- `./data` 持久化配置与数据库：`config.yaml`（首次运行自动生成）、`data.db`（SQLite）、日志
+- 可用环境变量 `GOSTC_ADMIN_ADDR` 覆盖监听地址（如 `0.0.0.0:9090`，需同步修改端口映射）
+- 生产环境建议前置 Nginx/Caddy 启用 HTTPS；客户端连接未启用 SSL 的自建服务端时需加 `--tls=false`
+
+**2. 部署客户端/节点**
+
+在被访问的内网机器（客户端）或公网机器（节点）上运行：
+
+```yaml
+services:
+  gostc:
+    image: adonis996/gostc:latest
+    container_name: gostc
+    restart: unless-stopped
+    network_mode: host
+    command: ["-addr", "gostc.shop", "-key", "连接密钥"]
+```
+
+- 节点模式：`command` 中追加 `"-s"`，并使用节点密钥
+- 自建服务端未启用 SSL：`command: ["--tls=false", "-addr", "服务器IP:8080", "-key", "连接密钥"]`
+- `network_mode: host` 让容器直接使用宿主机网络，便于访问内网目标服务，建议保留
+- 连接密钥在网页「客户端 → 连接密钥」获取；节点密钥在管理端节点管理中获取
+
+**3. （可选）部署网关服务**
+
+`gostc-proxy` 用于实现自定义域名功能，部署在节点上，占用 80/443 端口：
+
+```yaml
+services:
+  gostc-proxy:
+    image: adonis996/gostc-proxy:latest
+    container_name: gostc-proxy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./proxy-data:/app/data
+```
+
+首次运行自动生成 `data/config.yaml`（默认 HTTP 80 / HTTPS 443），详细说明见[文档](https://gostc.shop/docs/)。
+
 ## 目录结构
 
 ```text

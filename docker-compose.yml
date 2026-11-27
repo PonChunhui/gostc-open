@@ -1,0 +1,17 @@
+# GOSTC 管理端（服务端）Docker Compose 模板
+# 用法：docker compose up -d
+# 访问：http://localhost:8080 （默认账号密码 admin/admin）
+# 数据持久化在 ./data 目录（config.yaml、data.db、日志）
+# 客户端 / 节点 / 网关服务的部署示例见 README「安装部署」一节
+services:
+  gostc-admin:
+    image: adonis996/gostc-admin:latest
+    container_name: gostc-admin
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    # 可选：覆盖监听地址（需同步修改上面的端口映射）
+    # environment:
+    #   - GOSTC_ADMIN_ADDR=0.0.0.0:8080

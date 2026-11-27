@@ -111,10 +111,9 @@ systemctl start gostc
 ## Docker 部署客户端
 
 ```yaml
-version: "3"
 services:
   client1:
-    image: sianhh/gostc:latest
+    image: adonis996/gostc:latest
     restart: always
     network_mode: host
     container_name: gostc
@@ -123,7 +122,7 @@ services:
       - -addr
       - gostc.shop
       - -key
-      - ****** # 客户端密钥
+      - "******" # 客户端密钥
 ```
 
 节点部署在 command 中追加 `-s` 并使用节点密钥。

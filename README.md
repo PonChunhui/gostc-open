@@ -27,6 +27,120 @@ An intranet penetration management platform built on FRP. It supports multiple u
 
 Detailed guides: <https://gostc.shop/docs/>
 
+## Installation
+
+Two options: **one-line script install (Linux)** and **Docker Compose**. Packages and images are published from this repository: [GitHub Releases](https://github.com/PonChunhui/gostc-open/releases) / [Docker Hub](https://hub.docker.com/u/adonis996).
+
+### Option 1: One-line Script Install (Linux)
+
+The script detects the system architecture, downloads the latest release from GitHub Releases, and installs it. Requires `bash`, `curl`, `sudo`, and `tar`/`unzip`.
+
+**Install the admin server:**
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/PonChunhui/gostc-open/main/install.sh | bash -s -- server
+```
+
+- Installs to `/usr/local/gostc-admin/` and registers the systemd service `gostc-admin`
+- Start it with `systemctl start gostc-admin`, then open `http://SERVER_IP:8080` (default account / password: `admin/admin`)
+- Data directory: `/usr/local/gostc-admin/data/` (config, SQLite database, logs)
+
+**Install the client / node:**
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/PonChunhui/gostc-open/main/install.sh | bash -s -- gostc
+```
+
+The script only installs the binary to `/usr/local/bin/gostc`. Connect it to the server manually:
+
+```shell
+# client (run on the intranet machine to be accessed)
+gostc -addr gostc.shop -key CONNECTION_KEY
+
+# node (run on a public machine; -s enables node mode)
+gostc -addr gostc.shop -s -key NODE_KEY
+
+# self-hosted server without SSL
+gostc --tls=false -addr SERVER_IP:8080 -key CONNECTION_KEY
+```
+
+To register it as a system service, see "Register as a Service" below.
+
+You can also download [install.sh](install.sh) and run `bash install.sh server` or `bash install.sh gostc` locally.
+
+### Option 2: Docker Compose
+
+Images published by this repository (built and pushed by CI on each release):
+
+| Image | Description | Architectures |
+| --- | --- | --- |
+| `adonis996/gostc-admin` | Admin server | amd64 / arm64 |
+| `adonis996/gostc` | Client / node | 386 / amd64 / armv7 / arm64 / s390x |
+| `adonis996/gostc-proxy` | Gateway service (custom domains, optional) | 386 / amd64 / armv7 / arm64 / s390x |
+
+Tag policy: stable releases publish both `latest` and a version tag (e.g. `2.0.12`); pre-releases (rc/beta) publish only the version tag and never overwrite `latest`.
+
+**1. Deploy the admin server**
+
+Create a `docker-compose.yml` (a ready-to-use template is provided at the repo root: [docker-compose.yml](docker-compose.yml)):
+
+```yaml
+services:
+  gostc-admin:
+    image: adonis996/gostc-admin:latest
+    container_name: gostc-admin
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+```
+
+```shell
+docker compose up -d
+```
+
+- Open `http://SERVER_IP:8080` (default account / password: `admin/admin`)
+- `./data` persists the config and database: `config.yaml` (auto-generated on first run), `data.db` (SQLite), and logs
+- Override the listen address with the `GOSTC_ADMIN_ADDR` environment variable (e.g. `0.0.0.0:9090`; adjust the port mapping accordingly)
+- For production, put Nginx/Caddy in front to enable HTTPS; clients connecting to a self-hosted server without SSL need `--tls=false`
+
+**2. Deploy the client / node**
+
+Run on the intranet machine to be accessed (client) or on a public machine (node):
+
+```yaml
+services:
+  gostc:
+    image: adonis996/gostc:latest
+    container_name: gostc
+    restart: unless-stopped
+    network_mode: host
+    command: ["-addr", "gostc.shop", "-key", "CONNECTION_KEY"]
+```
+
+- Node mode: append `"-s"` to `command` and use the node key
+- Self-hosted server without SSL: `command: ["--tls=false", "-addr", "SERVER_IP:8080", "-key", "CONNECTION_KEY"]`
+- `network_mode: host` lets the container use the host network directly so it can reach intranet target services; recommended
+- Get the connection key from the web UI ("Clients → Connection Key"); get the node key from node management in the admin panel
+
+**3. (Optional) Deploy the gateway service**
+
+`gostc-proxy` provides the custom-domain feature and runs on a node, occupying ports 80/443:
+
+```yaml
+services:
+  gostc-proxy:
+    image: adonis996/gostc-proxy:latest
+    container_name: gostc-proxy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./proxy-data:/app/data
+```
+
+`data/config.yaml` is auto-generated on first run (defaults: HTTP 80 / HTTPS 443). See the [documentation](https://gostc.shop/docs/) for details.
+
 ## Directory Structure
 
 ```text
