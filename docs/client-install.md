@@ -113,7 +113,7 @@ systemctl start gostc
 ```yaml
 services:
   client1:
-    image: adonis996/gostc:latest
+    image: adonis996/gostc:2.0.12-rc1
     restart: always
     network_mode: host
     container_name: gostc
@@ -124,6 +124,8 @@ services:
       - -key
       - "******" # 客户端密钥
 ```
+
+镜像由本仓库 CI 发布到 [Docker Hub](https://hub.docker.com/r/adonis996/gostc)，请将版本号替换为所需版本。稳定版会同时发布 `latest` 标签；预发布版（rc/beta）只有版本号标签。
 
 节点部署在 command 中追加 `-s` 并使用节点密钥。
 
