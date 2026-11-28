@@ -1,5 +1,5 @@
 <script setup>
-import {computed, h, nextTick, onBeforeMount, onBeforeUnmount, ref, watch} from "vue";
+import {computed, h, onMounted, onBeforeUnmount, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import * as echarts from "echarts";
 import {apiAdminMetricRealtime, apiAdminMetricHistory, apiAdminMetricTop, apiAdminMetricObjects} from "../../../api/admin/metric.js";
@@ -81,6 +81,10 @@ let rtChart = null
 let histChart = null
 let timer = null
 
+const ensureCharts = () => {
+  if (!rtChart && rtChartEl.value) rtChart = echarts.init(rtChartEl.value)
+  if (!histChart && histChartEl.value) histChart = echarts.init(histChartEl.value)
+}
 const renderLine = (chart, seriesList) => {
   if (!chart) return
   const series = seriesList.map(s => ({
@@ -125,7 +129,9 @@ const realtimeFunc = async () => {
     const gauge = {}
     list.forEach(s => { gauge[s.metric] = s.gauge })
     state.value.rt.gauge = gauge
+    ensureCharts()
     renderLine(rtChart, list)
+    if (rtChart) rtChart.resize()
   } finally { state.value.rt.loading = false }
 }
 
@@ -141,7 +147,9 @@ const historyFunc = async () => {
       endTs: Math.floor(state.value.hist.endTs / 1000),
     })
     const points = res.data || []
+    ensureCharts()
     renderLine(histChart, [{metric: state.value.hist.metric, points}])
+    if (histChart) histChart.resize()
   } finally { state.value.hist.loading = false }
 }
 
@@ -172,10 +180,9 @@ const resizeCharts = () => {
   if (histChart) histChart.resize()
 }
 
-onBeforeMount(async () => {
-  await nextTick()
-  if (rtChartEl.value) rtChart = echarts.init(rtChartEl.value)
-  if (histChartEl.value) histChart = echarts.init(histChartEl.value)
+onMounted(async () => {
+  ensureCharts()
+  resizeCharts()
   window.addEventListener('resize', resizeCharts)
   setupTimer()
   topFunc()

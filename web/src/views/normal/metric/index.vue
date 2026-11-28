@@ -1,5 +1,5 @@
 <script setup>
-import {computed, nextTick, onBeforeMount, onBeforeUnmount, ref, watch} from "vue";
+import {computed, onMounted, onBeforeUnmount, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import * as echarts from "echarts";
 import {apiNormalMetricRealtime, apiNormalMetricHistory, apiNormalMetricObjects} from "../../../api/normal/metric.js";
@@ -41,6 +41,7 @@ const fmtTime = (ts) => {
 }
 
 const renderChart = (seriesList) => {
+  ensureCharts()
   if (!chart) return
   const series = seriesList.map(s => ({
     name: metricText(s.metric),
@@ -57,6 +58,7 @@ const renderChart = (seriesList) => {
     yAxis: {type: 'value'},
     series,
   }, true)
+  chart.resize()
 }
 
 const realtimeFunc = async () => {
@@ -119,12 +121,13 @@ const setupTimer = () => {
 
 watch(() => [state.value.form.mode, state.value.form.autoRefresh], setupTimer)
 
-onBeforeMount(async () => {
-  await nextTick()
-  if (chartEl.value) {
-    chart = echarts.init(chartEl.value)
-    window.addEventListener('resize', resizeChart)
-  }
+const ensureCharts = () => {
+  if (!chart && chartEl.value) chart = echarts.init(chartEl.value)
+}
+onMounted(async () => {
+  ensureCharts()
+  resizeChart()
+  window.addEventListener('resize', resizeChart)
   setupTimer()
   await loadObjects()
   queryFunc()
