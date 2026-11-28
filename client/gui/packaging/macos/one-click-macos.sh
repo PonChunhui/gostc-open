@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # 一键在 macOS 上构建 GOSTC v2.0.13 图形版 universal .dmg 并上传到面板下载目录。
 #
-# 用法（在已 clone 的仓库里运行）：
+# 用法（在已 clone 的仓库里运行，凭据通过环境变量传入，不写死在脚本里）：
 #   git clone https://github.com/PonChunhui/gostc-open.git
 #   cd gostc-open
-#   bash client/gui/packaging/macos/one-click-macos.sh
+#   PANEL_PASS='你的面板密码' bash client/gui/packaging/macos/one-click-macos.sh
+#   # 可选覆盖：PANEL_HOST / PANEL_USER
 #
 # 依赖：macOS 11+、Xcode Command Line Tools（clang/lipo/sips/iconutil/hdiutil/codesign）、Go>=1.24。
 # 产物：client/gui/dist/GOSTC_2.0.13_macos_universal.dmg，并上传为 downloads/gostc-macos-universal.dmg。
@@ -13,7 +14,8 @@ set -euo pipefail
 VER="${1:-v2.0.13}"
 PANEL_HOST="${PANEL_HOST:-124.222.160.204}"
 PANEL_USER="${PANEL_USER:-root}"
-PANEL_PASS="${PANEL_PASS:-idc.linux66.CN}"
+# 密码不写死在脚本里，必须经环境变量传入
+PANEL_PASS="${PANEL_PASS:?请先设置 PANEL_PASS 环境变量（面板 SSH 密码）}"
 DOWNLOAD_DIR="/usr/local/gostc-admin/downloads"
 
 [ "$(uname)" = "Darwin" ] || { echo "错误：必须在 macOS 上运行（GUI 依赖 Cocoa/WebKit cgo）" >&2; exit 1; }
