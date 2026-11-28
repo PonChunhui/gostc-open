@@ -175,20 +175,8 @@ func NewProxy(cfg ProxyConfig) (*Proxy, error) {
 			MinVersion: tls.VersionTLS10,
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				certMap := proxy.certs.Load().(map[string]*tls.Certificate)
-				if c, ok := certMap[hello.ServerName]; ok {
+				if c := pickCertificate(certMap, hello.ServerName); c != nil {
 					return c, nil
-				}
-
-				sni := hello.ServerName
-				for {
-					index := strings.IndexByte(sni, '.')
-					if index < 0 {
-						break
-					}
-					sni = sni[index+1:]
-					if c, ok := certMap[sni]; ok {
-						return c, nil
-					}
 				}
 
 				// 仅80端口，自动申请证书
@@ -382,6 +370,29 @@ type LoadCertConfig struct {
 	KeyFile  string
 }
 
+// pickCertificate 按 SNI 选证书：精确匹配优先，其次逐级向上匹配通配符（*.parent），
+// 最后才回退到父域精确证书，避免通配符证书被同域裸证书覆盖。
+func pickCertificate(certMap map[string]*tls.Certificate, serverName string) *tls.Certificate {
+	if serverName == "" {
+		return nil
+	}
+	if c, ok := certMap[serverName]; ok {
+		return c
+	}
+	sni := serverName
+	for {
+		index := strings.IndexByte(sni, '.')
+		if index < 0 {
+			break
+		}
+		sni = sni[index+1:]
+		if c, ok := certMap["*."+sni]; ok {
+			return c
+		}
+	}
+	return nil
+}
+
 func (p *Proxy) LoadCerts(certConfigs []LoadCertConfig) {
 	certs := make(map[string]*tls.Certificate)
 	for _, c := range certConfigs {
@@ -390,12 +401,7 @@ func (p *Proxy) LoadCerts(certConfigs []LoadCertConfig) {
 			log.Println(c.Host, err)
 			continue
 		}
-		if strings.HasPrefix(c.Host, "*") || strings.HasPrefix(c.Host, ".") {
-			index := strings.IndexByte(c.Host, '.')
-			certs[c.Host[index+1:]] = &x509Cert
-		} else {
-			certs[c.Host] = &x509Cert
-		}
+		certs[c.Host] = &x509Cert
 	}
 	p.certs.Store(certs)
 }
@@ -409,12 +415,7 @@ func (p *Proxy) AddCert(cfg LoadCertConfig) {
 		log.Println(cfg.Host, err)
 		return
 	}
-	if strings.HasPrefix(cfg.Host, "*") || strings.HasPrefix(cfg.Host, ".") {
-		index := strings.IndexByte(cfg.Host, '.')
-		certs[cfg.Host[index+1:]] = &x509Cert
-	} else {
-		certs[cfg.Host] = &x509Cert
-	}
+	certs[cfg.Host] = &x509Cert
 	p.certs.Store(certs)
 }
 

@@ -1,9 +1,38 @@
 package proxy
 
 import (
+	"crypto/tls"
 	"net/http"
 	"testing"
 )
+
+func TestPickCertificate(t *testing.T) {
+	wild := &tls.Certificate{}
+	bare := &tls.Certificate{}
+	other := &tls.Certificate{}
+	certMap := map[string]*tls.Certificate{
+		"*.ningbo-2.node.linux66.cn": wild,
+		"ningbo-2.node.linux66.cn":   bare,
+		"yng.linux66.cn":             other,
+	}
+	cases := []struct {
+		sni  string
+		want *tls.Certificate
+	}{
+		{"probe.ningbo-2.node.linux66.cn", wild},   // 子域→通配符优先于父域裸证书
+		{"a.b.ningbo-2.node.linux66.cn", wild},     // 多级子域回退到通配符
+		{"ningbo-2.node.linux66.cn", bare},         // 裸域精确匹配
+		{"yng.linux66.cn", other},                  // 其它精确匹配
+		{"probe.yng.linux66.cn", nil},              // 无通配符且父域证书不覆盖子域
+		{"", nil},
+		{"unknown.example.com", nil},
+	}
+	for _, c := range cases {
+		if got := pickCertificate(certMap, c.sni); got != c.want {
+			t.Errorf("sni=%q got=%p want=%p", c.sni, got, c.want)
+		}
+	}
+}
 
 func testRouter(withDefault bool) *HostRouter {
 	r := &HostRouter{

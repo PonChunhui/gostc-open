@@ -7,10 +7,14 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"os"
+	"path/filepath"
 	"time"
 
+	"server/global"
 	"server/model"
 
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -54,9 +58,13 @@ func buildProvider(provider string, cred Credential) (challenge.Provider, error)
 		}
 		cfg := dnspod.NewDefaultConfig()
 		cfg.LoginToken = cred.LoginToken
+		cfg.PropagationTimeout = 5 * time.Minute
+		cfg.PollingInterval = 10 * time.Second
 		return dnspod.NewDNSProviderConfig(cfg)
 	case model.CERT_PROVIDER_CLOUDFLARE:
 		cfg := cloudflare.NewDefaultConfig()
+		cfg.PropagationTimeout = 5 * time.Minute
+		cfg.PollingInterval = 10 * time.Second
 		cfg.AuthToken = cred.AuthToken
 		cfg.ZoneToken = cred.ZoneToken
 		cfg.AuthEmail = cred.AuthEmail
@@ -70,6 +78,8 @@ func buildProvider(provider string, cred Credential) (challenge.Provider, error)
 			return nil, errors.New("阿里云 DNS 凭据缺失（apiKey+secretKey）")
 		}
 		cfg := alidns.NewDefaultConfig()
+		cfg.PropagationTimeout = 5 * time.Minute
+		cfg.PollingInterval = 10 * time.Second
 		cfg.APIKey = cred.APIKey
 		cfg.SecretKey = cred.SecretKey
 		if cred.RegionID != "" {
@@ -93,11 +103,17 @@ func Issue(domain, provider string, cred Credential, email, ca string) (certPEM,
 	if err != nil {
 		return nil, nil, time.Time{}, err
 	}
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	privateKey, reg, err := loadAccount(email, ca)
 	if err != nil {
 		return nil, nil, time.Time{}, err
 	}
-	user := &acmeUser{Email: email, key: privateKey}
+	if privateKey == nil {
+		privateKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, nil, time.Time{}, err
+		}
+	}
+	user := &acmeUser{Email: email, key: privateKey, Registration: reg}
 	config := lego.NewConfig(user)
 	if ca != "" {
 		config.CADirURL = ca
@@ -110,11 +126,14 @@ func Issue(domain, provider string, cred Credential, email, ca string) (certPEM,
 	if err = client.Challenge.SetDNS01Provider(p); err != nil {
 		return nil, nil, time.Time{}, err
 	}
-	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
-	if err != nil {
-		return nil, nil, time.Time{}, err
+	if reg == nil {
+		reg, err = client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+		if err != nil {
+			return nil, nil, time.Time{}, err
+		}
+		user.Registration = reg
+		_ = saveAccount(email, ca, privateKey, reg)
 	}
-	user.Registration = reg
 	res, err := client.Certificate.Obtain(certificate.ObtainRequest{Domains: []string{domain}, Bundle: true})
 	if err != nil {
 		return nil, nil, time.Time{}, err
@@ -124,6 +143,62 @@ func Issue(domain, provider string, cred Credential, email, ca string) (certPEM,
 		return nil, nil, time.Time{}, err
 	}
 	return res.Certificate, res.PrivateKey, exp, nil
+}
+
+// accountFile 持久化 ACME 账户，避免每次签发都新建账户触发 LE 速率限制。
+func accountFile() string {
+	return filepath.Join(global.BASE_PATH, "data", "acme-account.json")
+}
+
+type storedAccount struct {
+	Email string                   `json:"email"`
+	CA    string                   `json:"ca"`
+	Key   string                   `json:"key"`
+	Reg   *registration.Resource   `json:"reg"`
+}
+
+// loadAccount 读取已持久化的账户（email/ca 匹配时），否则返回 nil 由调用方新建。
+func loadAccount(email, ca string) (crypto.PrivateKey, *registration.Resource, error) {
+	raw, err := os.ReadFile(accountFile())
+	if err != nil {
+		return nil, nil, nil
+	}
+	var s storedAccount
+	if err = json.Unmarshal(raw, &s); err != nil || s.Email != email || s.CA != ca || s.Reg == nil {
+		return nil, nil, nil
+	}
+	block, _ := pem.Decode([]byte(s.Key))
+	if block == nil {
+		return nil, nil, nil
+	}
+	key, err := x509.ParseECPrivateKey(block.Bytes)
+	if err != nil {
+		return nil, nil, nil
+	}
+	return key, s.Reg, nil
+}
+
+func saveAccount(email, ca string, key crypto.PrivateKey, reg *registration.Resource) error {
+	ec, ok := key.(*ecdsa.PrivateKey)
+	if !ok {
+		return errors.New("账户密钥类型不支持")
+	}
+	der, err := x509.MarshalECPrivateKey(ec)
+	if err != nil {
+		return err
+	}
+	s := storedAccount{
+		Email: email, CA: ca, Reg: reg,
+		Key: string(pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: der})),
+	}
+	raw, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+	if err = os.MkdirAll(filepath.Dir(accountFile()), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(accountFile(), raw, 0o600)
 }
 
 // ParseExpiry 解析证书 PEM 的到期时间。
