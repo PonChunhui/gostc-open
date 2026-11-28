@@ -106,3 +106,4 @@ func TakeNodeConn(code string) int64 {
 	global.Cache.Del(key)
 	return obs.Count
 }
+

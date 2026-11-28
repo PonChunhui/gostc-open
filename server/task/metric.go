@@ -30,7 +30,8 @@ func metricCollect() {
 	for _, n := range nodes {
 		obs := cache2.GetNodeObs(today, n.Code)
 		load := cache2.GetNodeLoad(n.Code)
-		// 连接数 = 本采集周期内新建用户连接数（frps newUserConn 插件累加），空闲为 0
+		// 连接数 = 本采集周期内新建用户连接数（frps newUserConn 插件累加）。
+		// 客户端上报的瞬时活跃连接数实测恒 0（frp workConn 生命周期语义），不采用。
 		recordMetric(db, model.GOST_OBS_ORIGIN_KIND_NODE, n.Code, obs, float64(cache2.TakeNodeConn(n.Code)), now, window)
 		// 节点在线客户端数/注册隧道数：来自节点 frps 实时上报
 		recordCount(db, model.GOST_OBS_ORIGIN_KIND_NODE, n.Code, model.METRIC_CLIENT_COUNT, float64(load.ClientCount), now, window)

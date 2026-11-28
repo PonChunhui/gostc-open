@@ -77,7 +77,8 @@ func (s *service) NewUserConn(req NewUserConnReq) (any, error) {
 	if admissionInfo.IsBlackIp(ip) || !admissionInfo.ValidWhiteIp(ip) {
 		return nil, errors.New("reject connection")
 	}
-	// 放行一次用户连接：累加节点周期内新建连接数（指标"连接数"来源）
+	// 放行一次用户连接：累加节点周期内新建连接数（指标"连接数"来源）。
+	// 客户端上报的瞬时活跃连接数实测恒 0（frp workConn 生命周期语义），故采用周期新建计数。
 	go cache2.IncreaseNodeConn(result.NodeCode)
 	return nil, nil
 }
