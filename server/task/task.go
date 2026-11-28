@@ -7,6 +7,9 @@ import (
 )
 
 func init() {
+	// 注入即时健康探测触发器，供节点重连/面板重启后重建隧道注册态。
+	global.HealthProbeTrigger = ScheduleHealthProbe
+
 	bootstrap.TaskFunc = func() {
 		_, _ = global.Cron.AddFunc("0 0 * * *", gostObs)
 		_, _ = global.Cron.AddFunc("0 0 * * *", tunnelClean) // 每天，清理旧隧道

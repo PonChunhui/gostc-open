@@ -71,6 +71,25 @@ func healthProbe() {
 	monitorNodes(nodes)
 }
 
+var (
+	probeTriggerMu    sync.Mutex
+	probeTriggerTimer *time.Timer
+)
+
+// ScheduleHealthProbe 防抖地触发一次即时健康探测（2 秒内多次调用合并为一次）。
+// 节点重连/面板重启后调用，使隧道注册态在数秒内由探测重建，而不必等下一个探测周期。
+func ScheduleHealthProbe() {
+	if !global.Config.Health.Enable {
+		return
+	}
+	probeTriggerMu.Lock()
+	defer probeTriggerMu.Unlock()
+	if probeTriggerTimer != nil {
+		probeTriggerTimer.Stop()
+	}
+	probeTriggerTimer = time.AfterFunc(time.Second*2, healthProbe)
+}
+
 // monitorNodes 监测节点在线状态，由在线转离线时触发 node_offline 告警（面向管理员）。
 func monitorNodes(nodes []*model.GostNode) {
 	for _, n := range nodes {
@@ -125,14 +144,23 @@ func probeOne(db *query.Query, it probeItem, node *model.GostNode, timeout time.
 	registered := cache2.GetTunnelRegistered(it.Code)
 
 	reachable := 0 // 0 未探测
+	regHint := 0   // 探测得到的注册态ground truth：1已注册 2未注册 0无法判定
 	lastErr := ""
 	if prev.ProbeDisable != 1 && node != nil {
 		switch it.Type {
 		case model.TUNNEL_HEALTH_TYPE_HOST:
-			reachable, lastErr = probeHTTP(node, it.HostHeader, timeout)
+			reachable, regHint, lastErr = probeHTTP(node, it.HostHeader, timeout)
 		case model.TUNNEL_HEALTH_TYPE_FORWARD:
-			reachable, lastErr = probeTCP(node, it.RemotePort, timeout)
+			reachable, regHint, lastErr = probeTCP(node, it.RemotePort, timeout)
 		}
+	}
+
+	// 用探测ground truth校正注册态缓存：frps 实际路由结果是最权威来源。
+	// 面板重启会丢失事件式注册缓存，且客户端配置未变时不会重新注册（UpdateTag 跳过），
+	// 故由探测周期性重建注册态，重启后一个探测周期内即恢复准确，无需等待客户端重连。
+	if regHint != 0 {
+		registered = regHint == 1
+		cache2.SetTunnelRegistered(it.Code, registered)
 	}
 
 	status := decideHealth(online, registered, reachable)
@@ -185,45 +213,51 @@ func upsertHealth(db *query.Query, h cache2.TunnelHealth) {
 }
 
 // probeHTTP 经节点 HTTP 入口探测 host 隧道（服务器本地，绕过外网拦截）。
-func probeHTTP(node *model.GostNode, hostHeader string, timeout time.Duration) (int, string) {
+// 返回 (可达性, 注册态提示, 错误)：可达性 1可达 2不可达 0未探测；
+// 注册态提示 1已注册 2未注册 0无法判定（连接失败时不臆断注册态）。
+func probeHTTP(node *model.GostNode, hostHeader string, timeout time.Duration) (int, int, string) {
 	ip, _ := node.GetOriginAddress()
 	if ip == "" || node.HttpPort == "" || hostHeader == "" {
-		return 0, ""
+		return 0, 0, ""
 	}
 	url := fmt.Sprintf("http://%s:%s/", ip, node.HttpPort)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return 2, err.Error()
+		return 2, 0, err.Error()
 	}
 	req.Host = hostHeader
 	client := &http.Client{Timeout: timeout}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 2, "探测失败:" + err.Error()
+		return 2, 0, "探测失败:" + err.Error()
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	if resp.StatusCode >= 500 {
-		return 2, fmt.Sprintf("上游返回 %d", resp.StatusCode)
+		// frps 已把请求路由到上游（说明代理已注册），只是上游返回 5xx。
+		return 2, 1, fmt.Sprintf("上游返回 %d", resp.StatusCode)
 	}
 	if resp.StatusCode == 404 && strings.Contains(strings.ToLower(string(body)), "frp") {
-		return 2, "frp 未找到转发(404)"
+		// frps 自身 404 页 → 该域名无代理注册。
+		return 2, 2, "frp 未找到转发(404)"
 	}
-	return 1, ""
+	// 上游正常响应（含上游自身的 404 等）→ 代理已注册且后端可达。
+	return 1, 1, ""
 }
 
 // probeTCP 探测 forward 隧道远端端口可达性。
-func probeTCP(node *model.GostNode, port string, timeout time.Duration) (int, string) {
+// 返回 (可达性, 注册态提示, 错误)：端口可连 → frps 已绑定该端口（代理已注册）。
+func probeTCP(node *model.GostNode, port string, timeout time.Duration) (int, int, string) {
 	ip, _ := node.GetOriginAddress()
 	if ip == "" || port == "" {
-		return 0, ""
+		return 0, 0, ""
 	}
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ip, port), timeout)
 	if err != nil {
-		return 2, "端口不可达:" + err.Error()
+		return 2, 0, "端口不可达:" + err.Error()
 	}
 	_ = conn.Close()
-	return 1, ""
+	return 1, 1, ""
 }
 
 func b2i(b bool) int {

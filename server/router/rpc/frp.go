@@ -187,6 +187,11 @@ func InitFrp(ginEngine *gin.Engine, ln net.Listener) {
 		cache3.DelNodeLoad(gostNode.Code)
 		client.Set("code", gostNode.Code)
 		engine.NodeConfig(db, gostNode.Code)
+		// 节点重连（含面板重启后）立即触发一次健康探测，由探测ground truth重建隧道注册态，
+		// 避免重启后注册缓存丢失、客户端配置未变又不重新注册导致的"未注册"假象。
+		if global.HealthProbeTrigger != nil {
+			global.HealthProbeTrigger()
+		}
 	})
 
 	rpcServer.Handler.Handle("rpc/metrics/input", func(c *arpc.Context) {
