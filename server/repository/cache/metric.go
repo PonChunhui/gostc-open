@@ -80,3 +80,29 @@ func GetObsSnapshot(kind int, code string) (s ObsSnapshot) {
 func SetObsSnapshot(kind int, code string, s ObsSnapshot) {
 	global.Cache.SetStruct(fmt.Sprintf(metric_obs_snapshot_key, kind, code), s, cache.NoExpiration)
 }
+
+// 节点周期内新建用户连接计数（frps newUserConn 插件累加，采集时取走清零）。
+const metric_node_conn_key = "metric:node:conn:%s"
+
+type NodeConnObs struct {
+	Count int64
+}
+
+func IncreaseNodeConn(code string) {
+	if code == "" {
+		return
+	}
+	key := fmt.Sprintf(metric_node_conn_key, code)
+	var obs NodeConnObs
+	_ = global.Cache.GetStruct(key, &obs)
+	obs.Count++
+	global.Cache.SetStruct(key, obs, cache.NoExpiration)
+}
+
+func TakeNodeConn(code string) int64 {
+	key := fmt.Sprintf(metric_node_conn_key, code)
+	var obs NodeConnObs
+	_ = global.Cache.GetStruct(key, &obs)
+	global.Cache.Del(key)
+	return obs.Count
+}

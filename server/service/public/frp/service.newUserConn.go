@@ -77,5 +77,7 @@ func (s *service) NewUserConn(req NewUserConnReq) (any, error) {
 	if admissionInfo.IsBlackIp(ip) || !admissionInfo.ValidWhiteIp(ip) {
 		return nil, errors.New("reject connection")
 	}
+	// 放行一次用户连接：累加节点周期内新建连接数（指标"连接数"来源）
+	go cache2.IncreaseNodeConn(result.NodeCode)
 	return nil, nil
 }
