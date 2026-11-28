@@ -44,23 +44,46 @@ func SubOf(domain, zone string) string {
 	return strings.TrimSuffix(domain, "."+zone)
 }
 
-// Resolve 解析某域名的 DNS 凭据：优先该域名的 SystemCert（ACME），否则全局 configs.DNS。
+// zoneFor 推导域名所属注册域：顶层配置 zone 仅在该域名确属其下时生效，否则取后两段。
+// 避免多域名（gostc.shop / linux66.cn）共用一个配置 zone 导致写错 zone。
+func zoneFor(domain string) string {
+	cfgZone := global.Config.DNS.Zone
+	if cfgZone != "" && strings.HasSuffix(strings.Trim(domain, "."), cfgZone) {
+		return cfgZone
+	}
+	return ZoneOf(domain, "")
+}
+
+// Resolve 解析某域名的 DNS 凭据：优先该域名的 SystemCert（ACME），
+// 其次按注册域匹配 configs.DNS.Extra（多服务商），最后回退顶层单服务商配置。
 func Resolve(domain string) (provider string, cred acme.Credential, ttl int, zone string, ok bool) {
 	db, _, _ := repository.Get("")
 	if cert, _ := db.SystemCert.Where(db.SystemCert.Domain.Eq(domain)).First(); cert != nil && cert.Provider != "" {
 		raw := crypto.DecryptSafe(cert.CredentialEnc, global.Config.Encrypt.Key)
 		var c acme.Credential
 		if json.Unmarshal([]byte(raw), &c) == nil {
-			return cert.Provider, c, global.Config.DNS.TTL, global.Config.DNS.Zone, true
+			return cert.Provider, c, global.Config.DNS.TTL, zoneFor(domain), true
 		}
 	}
 	cfg := global.Config.DNS
+	z := zoneFor(domain)
+	for _, e := range cfg.Extra {
+		if e.Zone == z && e.Provider != "" {
+			var c acme.Credential
+			_ = json.Unmarshal([]byte(e.Credential), &c)
+			t := e.TTL
+			if t <= 0 {
+				t = cfg.TTL
+			}
+			return e.Provider, c, t, e.Zone, true
+		}
+	}
 	if cfg.Provider == "" {
 		return "", acme.Credential{}, 0, "", false
 	}
 	var c acme.Credential
 	_ = json.Unmarshal([]byte(cfg.Credential), &c)
-	return cfg.Provider, c, cfg.TTL, cfg.Zone, true
+	return cfg.Provider, c, cfg.TTL, z, true
 }
 
 // UpdateA 把 domain 的 A 记录更新为 ip（不存在则创建）。
