@@ -28,6 +28,7 @@ var (
 	GostClientP2P        *gostClientP2P
 	GostClientProxy      *gostClientProxy
 	GostClientTunnel     *gostClientTunnel
+	GostFailoverLog      *gostFailoverLog
 	GostMetric           *gostMetric
 	GostNode             *gostNode
 	GostNodeBind         *gostNodeBind
@@ -69,6 +70,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	GostClientP2P = &Q.GostClientP2P
 	GostClientProxy = &Q.GostClientProxy
 	GostClientTunnel = &Q.GostClientTunnel
+	GostFailoverLog = &Q.GostFailoverLog
 	GostMetric = &Q.GostMetric
 	GostNode = &Q.GostNode
 	GostNodeBind = &Q.GostNodeBind
@@ -111,6 +113,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		GostClientP2P:        newGostClientP2P(db, opts...),
 		GostClientProxy:      newGostClientProxy(db, opts...),
 		GostClientTunnel:     newGostClientTunnel(db, opts...),
+		GostFailoverLog:      newGostFailoverLog(db, opts...),
 		GostMetric:           newGostMetric(db, opts...),
 		GostNode:             newGostNode(db, opts...),
 		GostNodeBind:         newGostNodeBind(db, opts...),
@@ -154,6 +157,7 @@ type Query struct {
 	GostClientP2P        gostClientP2P
 	GostClientProxy      gostClientProxy
 	GostClientTunnel     gostClientTunnel
+	GostFailoverLog      gostFailoverLog
 	GostMetric           gostMetric
 	GostNode             gostNode
 	GostNodeBind         gostNodeBind
@@ -198,6 +202,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		GostClientP2P:        q.GostClientP2P.clone(db),
 		GostClientProxy:      q.GostClientProxy.clone(db),
 		GostClientTunnel:     q.GostClientTunnel.clone(db),
+		GostFailoverLog:      q.GostFailoverLog.clone(db),
 		GostMetric:           q.GostMetric.clone(db),
 		GostNode:             q.GostNode.clone(db),
 		GostNodeBind:         q.GostNodeBind.clone(db),
@@ -249,6 +254,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		GostClientP2P:        q.GostClientP2P.replaceDB(db),
 		GostClientProxy:      q.GostClientProxy.replaceDB(db),
 		GostClientTunnel:     q.GostClientTunnel.replaceDB(db),
+		GostFailoverLog:      q.GostFailoverLog.replaceDB(db),
 		GostMetric:           q.GostMetric.replaceDB(db),
 		GostNode:             q.GostNode.replaceDB(db),
 		GostNodeBind:         q.GostNodeBind.replaceDB(db),
@@ -290,6 +296,7 @@ type queryCtx struct {
 	GostClientP2P        IGostClientP2PDo
 	GostClientProxy      IGostClientProxyDo
 	GostClientTunnel     IGostClientTunnelDo
+	GostFailoverLog      IGostFailoverLogDo
 	GostMetric           IGostMetricDo
 	GostNode             IGostNodeDo
 	GostNodeBind         IGostNodeBindDo
@@ -331,6 +338,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		GostClientP2P:        q.GostClientP2P.WithContext(ctx),
 		GostClientProxy:      q.GostClientProxy.WithContext(ctx),
 		GostClientTunnel:     q.GostClientTunnel.WithContext(ctx),
+		GostFailoverLog:      q.GostFailoverLog.WithContext(ctx),
 		GostMetric:           q.GostMetric.WithContext(ctx),
 		GostNode:             q.GostNode.WithContext(ctx),
 		GostNodeBind:         q.GostNodeBind.WithContext(ctx),

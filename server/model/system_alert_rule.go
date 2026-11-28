@@ -8,6 +8,7 @@ const (
 	ALERT_EVENT_TRAFFIC_EXHAUST = "traffic_exhaust" // 流量耗尽
 	ALERT_EVENT_CERT_EXPIRE   = "cert_expire"   // 证书即将到期
 	ALERT_EVENT_NODE_FAILOVER = "node_failover" // 隧道故障转移到备节点
+	ALERT_EVENT_FAILOVER_PORT_CONFLICT = "failover_port_conflict" // 备节点无法提供同端口，放弃转移
 )
 
 // 告警目标范围。

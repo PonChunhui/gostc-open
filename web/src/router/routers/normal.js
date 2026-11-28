@@ -223,6 +223,18 @@ export const normalRouters = [
         }
     },
     {
+        path: '/normal/failover',
+        name: 'NormalFailover',
+        component: () => import('../../views/normal/failover/index.vue'),
+        meta: {
+            title: '故障转移',
+            layout: 'simple',
+            hidden: 2,
+            group: '监控中心',
+            icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M684.8 341.333333L896 552.533333l-211.2 211.2-60.330667-60.373333 108.202667-108.16H170.666667v-85.333333h562.005333l-108.202667-108.202667L684.8 341.333333zM339.2 256l60.330667 60.330667L291.328 424.533333H853.333333v85.333334H291.328l108.202667 108.202666L339.2 678.4 128 467.2 339.2 256z" fill="#888888"></path></svg>',
+        }
+    },
+    {
         path: '/normal/cert',
         name: 'NormalCert',
         component: () => import('../../views/normal/cert/index.vue'),

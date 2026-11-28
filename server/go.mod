@@ -4,6 +4,8 @@ go 1.24.0
 
 require (
 	github.com/SianHH/frp-package v0.0.0-20260104124618-5001f362849f
+	github.com/aliyun/alibaba-cloud-sdk-go v1.63.47
+	github.com/cloudflare/cloudflare-go v0.108.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fogleman/gg v1.3.0
 	github.com/gin-contrib/gzip v1.2.5
@@ -17,6 +19,7 @@ require (
 	github.com/lesismal/arpc v1.2.17
 	github.com/ncruces/go-sqlite3 v0.30.4
 	github.com/ncruces/go-sqlite3/gormlite v0.30.2
+	github.com/nrdcg/dnspod-go v0.4.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pquerna/otp v1.5.0
 	github.com/redis/go-redis/v9 v9.7.0
@@ -38,14 +41,12 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/aliyun/alibaba-cloud-sdk-go v1.63.47 // indirect
 	github.com/boombuler/barcode v1.1.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.14.2 // indirect
 	github.com/bytedance/sonic/loader v0.4.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cloudflare/cloudflare-go v0.108.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
@@ -71,7 +72,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
-	github.com/nrdcg/dnspod-go v0.4.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect

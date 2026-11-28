@@ -20,17 +20,22 @@ import (
 // Dispatch 触发一次告警事件。objectKind 用 model.ALERT_TARGET_*；userCode 为资源属主。
 // 异步执行，不阻塞调用方（探测任务/插件）。
 func Dispatch(eventType string, objectKind int, objectCode, userCode, title, message string) {
+	DispatchPayload(eventType, objectKind, objectCode, userCode, title, message, nil)
+}
+
+// DispatchPayload 同 Dispatch，但附带结构化 payload（仅 webhook 渠道携带），用于入口跟随等场景。
+func DispatchPayload(eventType string, objectKind int, objectCode, userCode, title, message string, payload map[string]any) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
 				global.Logger.Warn("告警分发异常", zap.Any("recover", r))
 			}
 		}()
-		dispatch(eventType, objectKind, objectCode, userCode, title, message)
+		dispatch(eventType, objectKind, objectCode, userCode, title, message, payload)
 	}()
 }
 
-func dispatch(eventType string, objectKind int, objectCode, userCode, title, message string) {
+func dispatch(eventType string, objectKind int, objectCode, userCode, title, message string, payload map[string]any) {
 	db, _, log := repository.Get("")
 	rules, err := db.SystemAlertRule.Where(
 		db.SystemAlertRule.Enable.Eq(1),
@@ -54,7 +59,7 @@ func dispatch(eventType string, objectKind int, objectCode, userCode, title, mes
 		}
 		cache2.SetAlertSilence(silenceKey, silence)
 		for _, channel := range rule.GetChannels() {
-			result, detail := send(channel, rule.GetReceivers(), title, message)
+			result, detail := send(channel, rule.GetReceivers(), title, message, payload)
 			logEntry := &model.SystemAlertLog{
 				RuleCode:   rule.Code,
 				UserCode:   rule.UserCode,
@@ -91,7 +96,7 @@ func matchTarget(rule *model.SystemAlertRule, objectKind int, objectCode, userCo
 }
 
 // send 经指定渠道发送，返回结果(1成功2失败)与详情。
-func send(channel string, receivers []string, title, message string) (int, string) {
+func send(channel string, receivers []string, title, message string, payload map[string]any) (int, string) {
 	if len(receivers) == 0 {
 		return 2, "无接收者"
 	}
@@ -99,7 +104,7 @@ func send(channel string, receivers []string, title, message string) (int, strin
 	case "email":
 		return sendEmail(receivers, title, message)
 	case "webhook":
-		return sendWebhook(receivers, title, message)
+		return sendWebhook(receivers, title, message, payload)
 	}
 	return 2, "未知渠道:" + channel
 }
@@ -123,12 +128,16 @@ func sendEmail(receivers []string, title, message string) (int, string) {
 	return 1, "ok"
 }
 
-func sendWebhook(urls []string, title, message string) (int, string) {
-	payload, _ := json.Marshal(map[string]string{
+func sendWebhook(urls []string, title, message string, extra map[string]any) (int, string) {
+	body := map[string]any{
 		"title":     title,
 		"message":   message,
 		"timestamp": time.Now().Format(time.DateTime),
-	})
+	}
+	for k, v := range extra {
+		body[k] = v
+	}
+	payload, _ := json.Marshal(body)
 	client := &http.Client{Timeout: time.Second * 10}
 	var lastErr string
 	okCount := 0

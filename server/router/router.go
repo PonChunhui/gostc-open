@@ -65,6 +65,7 @@ func init() {
 		admin.InitHealth(adminGroup)
 		admin.InitAlert(adminGroup)
 		admin.InitMetric(adminGroup)
+		admin.InitFailover(adminGroup)
 
 		publicGroup := engine.Group("api/v1/public")
 		public.InitSystemConfig(publicGroup)
@@ -95,6 +96,7 @@ func init() {
 		normal.InitAlert(normalGroup)
 		normal.InitHealth(normalGroup)
 		normal.InitMetric(normalGroup)
+		normal.InitFailover(normalGroup)
 		normal.InitCert(normalGroup)
 		normal.InitPay(normalGroup)
 		normal.InitApiToken(normalGroup)

@@ -24,7 +24,8 @@ type RuleReq struct {
 func validEvent(e string) bool {
 	switch e {
 	case model.ALERT_EVENT_TUNNEL_DOWN, model.ALERT_EVENT_TUNNEL_UP, model.ALERT_EVENT_NODE_OFFLINE,
-		model.ALERT_EVENT_TRAFFIC_EXHAUST, model.ALERT_EVENT_CERT_EXPIRE, model.ALERT_EVENT_NODE_FAILOVER:
+		model.ALERT_EVENT_TRAFFIC_EXHAUST, model.ALERT_EVENT_CERT_EXPIRE, model.ALERT_EVENT_NODE_FAILOVER,
+		model.ALERT_EVENT_FAILOVER_PORT_CONFLICT:
 		return true
 	}
 	return false

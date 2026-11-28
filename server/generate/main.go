@@ -26,6 +26,7 @@ func main() {
 		model.GostNodeBind{},
 		model.GostNodeConfig{},
 		model.GostNodeGroup{},
+		model.GostFailoverLog{},
 		model.GostNodeDomain{},
 		model.GostNodePort{},
 		model.GostObs{},

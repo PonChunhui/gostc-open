@@ -9,6 +9,9 @@
   - [PRD（12 模块需求）](product/PRD.md)
   - [开发路线图](product/开发路线图.md)
   - [部署与升级指南](product/部署与升级.md)
+  - [入口跟随产品文档](product/入口跟随-产品文档.md)
+  - [入口跟随 PRD](product/入口跟随-PRD.md)
+  - [故障转移场景与入口跟随](product/故障转移场景与入口跟随.md)
 - 常见案例
   - [DeepSeek Harness AI-HUB 插件移动端公网直连](cases/ai-hub-mobile.md)
 - [常见问题](faq.md)

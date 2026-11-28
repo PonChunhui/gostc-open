@@ -19,4 +19,6 @@ type Config struct {
 	ACME      ACME          `yaml:"acme"`
 	DBResolver DBResolver   `yaml:"db-resolver"`
 	Pay       Pay           `yaml:"pay"`
+	DNS       DNS           `yaml:"dns"`
+	Failover  Failover      `yaml:"failover"`
 }

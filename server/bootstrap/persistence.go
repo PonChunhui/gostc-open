@@ -73,6 +73,7 @@ func InitPersistence() {
 		&model.GostNodePort{},
 		&model.GostNodeConfig{},
 		&model.GostNodeGroup{},
+		&model.GostFailoverLog{},
 		&model.FrpClientCfg{},
 		&model.GostTunnelHealth{},
 		&model.SystemAlertRule{},

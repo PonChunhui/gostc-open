@@ -3,6 +3,7 @@ package cache
 import (
 	"github.com/patrickmn/go-cache"
 	"server/global"
+	"strconv"
 	"time"
 )
 
@@ -73,4 +74,28 @@ func SetFailoverCooldown(code string, duration time.Duration) {
 
 func InFailoverCooldown(code string) bool {
 	return global.Cache.GetString("failover:cooldown:"+code) == "1"
+}
+
+// FailoverOrigin 记录转移前的主节点，用于 failback 回切。
+func SetFailoverOrigin(code, primary string) {
+	global.Cache.SetString("failover:origin:"+code, primary, cache.NoExpiration)
+}
+
+func GetFailoverOrigin(code string) string {
+	return global.Cache.GetString("failover:origin:" + code)
+}
+
+func DelFailoverOrigin(code string) {
+	global.Cache.Del("failover:origin:" + code)
+	global.Cache.Del("failover:recovered:" + code)
+}
+
+// FailoverRecovered 记录主节点恢复在线的起始时间（Unix 秒），用于回切稳定期。
+func SetFailoverRecovered(code string, ts int64) {
+	global.Cache.SetString("failover:recovered:"+code, strconv.FormatInt(ts, 10), cache.NoExpiration)
+}
+
+func GetFailoverRecovered(code string) int64 {
+	v, _ := strconv.ParseInt(global.Cache.GetString("failover:recovered:"+code), 10, 64)
+	return v
 }

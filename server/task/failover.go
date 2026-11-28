@@ -5,10 +5,13 @@ import (
 	"math/rand"
 	"server/global"
 	"server/model"
+	"server/pkg/crypto"
 	"server/repository"
 	cache2 "server/repository/cache"
 	"server/repository/query"
 	"server/service/common/alert"
+	"server/service/common/dnsfollow"
+	"server/service/common/entryfollow"
 	"server/service/common/node_select"
 	"server/service/engine"
 	"time"
@@ -27,7 +30,16 @@ type failoverItem struct {
 
 const failoverCooldown = 5 * time.Minute
 
-// failoverScan 周期性检查启用故障转移的隧道：主节点离线时切换到备节点（或分组内在线节点）并重推配置。
+func failbackDelay() int {
+	d := global.Config.Failover.FailbackDelaySec
+	if d <= 0 {
+		d = 300
+	}
+	return d
+}
+
+// failoverScan 周期性检查启用故障转移的隧道：主节点离线时切换到备节点（同端口硬约束）并重推配置、跟随入口；
+// 主节点恢复且开启 failback 时稳定后回切。
 func failoverScan() {
 	if !global.Config.Health.Enable {
 		return
@@ -39,6 +51,24 @@ func failoverScan() {
 	}
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for _, it := range items {
+		// ---- failback：曾转移且主节点恢复 ----
+		if origin := cache2.GetFailoverOrigin(it.Code); origin != "" && origin != it.NodeCode {
+			if cache2.GetNodeOnline(origin) {
+				if global.Config.Failover.Failback {
+					rec := cache2.GetFailoverRecovered(it.Code)
+					if rec == 0 {
+						cache2.SetFailoverRecovered(it.Code, time.Now().Unix())
+					} else if time.Now().Unix()-rec >= int64(failbackDelay()) {
+						doSwitch(db, it, origin, model.FAILOVER_REASON_FAILBACK, log)
+						cache2.DelFailoverOrigin(it.Code)
+					}
+				}
+				continue // 主节点在线，不做 failover
+			}
+			if cache2.GetFailoverRecovered(it.Code) != 0 {
+				cache2.SetFailoverRecovered(it.Code, 0)
+			}
+		}
 		if cache2.GetNodeOnline(it.NodeCode) {
 			continue // 主节点在线，无需转移
 		}
@@ -53,15 +83,74 @@ func failoverScan() {
 			cache2.SetFailoverCooldown(it.Code, failoverCooldown)
 			continue
 		}
-		if err := switchTunnelNode(db, it, backupCode); err != nil {
-			log.Warn("故障转移失败", zap.String("code", it.Code), zap.Error(err))
+		// ---- 同端口硬约束：备节点给不了同端口则放弃转移 ----
+		primary, _ := db.GostNode.Where(db.GostNode.Code.Eq(it.NodeCode)).First()
+		backup, _ := db.GostNode.Where(db.GostNode.Code.Eq(backupCode)).First()
+		if !entryfollow.CanServeSamePort(db, primary, backup, it.Type, it.Code) {
+			writeFailoverLog(db, it, it.NodeCode, backupCode, "", "", model.FAILOVER_REASON_PORT_CONFLICT)
+			alert.DispatchPayload(model.ALERT_EVENT_FAILOVER_PORT_CONFLICT, model.ALERT_TARGET_TUNNEL, it.Code, it.UserCode,
+				"备节点无法提供同端口，放弃故障转移",
+				fmt.Sprintf("隧道 %s 主节点 %s 离线，备节点 %s 无法提供相同公网端口，已放弃转移（端口不变约束）", it.Code, it.NodeCode, backupCode),
+				map[string]any{"tunnel": it.Code, "type": it.Type, "from": it.NodeCode, "to": backupCode, "reason": "port_conflict"})
+			cache2.SetFailoverCooldown(it.Code, failoverCooldown)
 			continue
 		}
+		cache2.SetFailoverOrigin(it.Code, it.NodeCode)
+		doSwitch(db, it, backupCode, model.FAILOVER_REASON_FAILOVER, log)
 		cache2.SetFailoverCooldown(it.Code, failoverCooldown)
-		alert.Dispatch(model.ALERT_EVENT_NODE_FAILOVER, model.ALERT_TARGET_TUNNEL, it.Code, it.UserCode,
-			"隧道已故障转移到备节点",
-			fmt.Sprintf("隧道 %s 主节点 %s 离线，已切换到备节点 %s", it.Code, it.NodeCode, backupCode))
 	}
+}
+
+// doSwitch 执行切换 + 入口跟随（DNS/网关路由）+ 历史 + 结构化告警。
+func doSwitch(db *query.Query, it failoverItem, target, reason string, log *zap.Logger) {
+	primary, _ := db.GostNode.Where(db.GostNode.Code.Eq(it.NodeCode)).First()
+	oldEntry := entryfollow.Entry(db, primary, it.Type, it.Code)
+	if err := switchTunnelNode(db, it, target); err != nil {
+		log.Warn("故障转移失败", zap.String("code", it.Code), zap.Error(err))
+		return
+	}
+	backup, _ := db.GostNode.Where(db.GostNode.Code.Eq(target)).First()
+	newEntry := entryfollow.Entry(db, backup, it.Type, it.Code)
+	writeFailoverLog(db, it, it.NodeCode, target, oldEntry, newEntry, reason)
+
+	// host：网关路由跟随 + 自定义域名 DNS 跟随
+	if it.Type == model.TUNNEL_HEALTH_TYPE_HOST && backup != nil {
+		host, _ := db.GostClientHost.Where(db.GostClientHost.Code.Eq(it.Code)).First()
+		if host != nil {
+			domain := host.GetCustomDomain()
+			if domain == "" {
+				domain = host.DomainPrefix + "." + backup.Domain
+			}
+			cert := crypto.DecryptSafe(host.CustomCert, global.Config.Encrypt.Key)
+			key := crypto.DecryptSafe(host.CustomKey, global.Config.Encrypt.Key)
+			engine.NodeAddDomain(db, target, domain, cert, key, host.CustomForceHttps)
+			if custom := host.GetCustomDomain(); custom != "" && global.Config.Failover.DNSFollow {
+				if provider, cred, ttl, zone, ok := dnsfollow.Resolve(custom); ok {
+					ip, _ := backup.GetOriginAddress()
+					if err := dnsfollow.UpdateA(provider, cred, custom, ip, ttl, zone); err != nil {
+						log.Warn("DNS 跟随失败", zap.String("domain", custom), zap.Error(err))
+					}
+				}
+			}
+		}
+	}
+
+	title := "隧道已故障转移到备节点"
+	if reason == model.FAILOVER_REASON_FAILBACK {
+		title = "主节点恢复，隧道已回切"
+	}
+	alert.DispatchPayload(model.ALERT_EVENT_NODE_FAILOVER, model.ALERT_TARGET_TUNNEL, it.Code, it.UserCode,
+		title,
+		fmt.Sprintf("隧道 %s 由节点 %s 切换到 %s，入口 %s -> %s", it.Code, it.NodeCode, target, oldEntry, newEntry),
+		map[string]any{"tunnel": it.Code, "type": it.Type, "from": it.NodeCode, "to": target,
+			"oldEntry": oldEntry, "newEntry": newEntry, "reason": reason})
+}
+
+func writeFailoverLog(db *query.Query, it failoverItem, from, to, oldEntry, newEntry, reason string) {
+	_ = db.GostFailoverLog.Create(&model.GostFailoverLog{
+		TunnelCode: it.Code, TunnelType: it.Type, UserCode: it.UserCode,
+		FromNode: from, ToNode: to, OldEntry: oldEntry, NewEntry: newEntry, Reason: reason,
+	})
 }
 
 // pickBackup 选择备节点：优先显式备节点（须在线），否则从主节点所在分组按策略挑在线节点。
