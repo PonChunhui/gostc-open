@@ -13,6 +13,7 @@ type SystemCert struct {
 	AutoRenew     int    // 1 自动续期 2 关闭
 	Status        int    // 0 待签发 1 有效 2 失败 3 已过期
 	LastError     string
+	PushSummary   string // 最近一次推送网关的结果摘要
 }
 
 const (

@@ -55,6 +55,7 @@ const tableColumns = computed(() => [
     }
   },
   {title: t('health.lastError'), key: 'lastError', ellipsis: {tooltip: true}},
+  {title: t('cert.pushSummary'), key: 'pushSummary', ellipsis: {tooltip: true}},
   {
     title: t('common.operate'), key: 'operator', width: 280, fixed: 'right', render(row) {
       return generateButtonGroup(

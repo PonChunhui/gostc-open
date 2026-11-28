@@ -34,6 +34,7 @@ type Item struct {
 	CustomEnable        int        `json:"customEnable"`
 	CustomForceHttps    int        `json:"customForceHttps"`
 	CustomDomainMatcher int        `json:"customDomainMatcher"`
+	CertCode            string     `json:"certCode"`
 	Node                ItemNode   `json:"node"`
 	Client              ItemClient `json:"client"`
 	Config              ItemConfig `json:"config"`
@@ -125,6 +126,7 @@ func (service *service) Page(claims jwt.Claims, req PageReq) (list []Item, total
 			CustomKey:           crypto.DecryptSafe(host.CustomKey, global.Config.Encrypt.Key),
 			CustomForceHttps:    host.CustomForceHttps,
 			CustomDomainMatcher: host.CustomDomainMatcher,
+			CertCode:            host.CertCode,
 			CustomEnable:        utils.TrinaryOperation(cache2.GetNodeCustomDomain(host.NodeCode), 1, 2),
 			Node: ItemNode{
 				Code: host.NodeCode,

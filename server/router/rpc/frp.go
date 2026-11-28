@@ -16,7 +16,6 @@ import (
 	cache3 "server/repository/cache"
 	"server/service/common/ban"
 	"server/service/engine"
-	service "server/service/normal/gost_client_host"
 	"strings"
 	"time"
 )
@@ -257,17 +256,19 @@ func InitFrp(ginEngine *gin.Engine, ln net.Listener) {
 			_ = c.Write("success")
 			return
 		}
-		if err := service.Service.Domain(userCode, service.DomainReq{
-			Code:             host.Code,
-			CustomDomain:     host.CustomDomain,
-			CustomCert:       req.Cert,
-			CustomKey:        req.Key,
-			CustomForceHttps: host.CustomForceHttps,
-			DomainMatcher:    host.CustomDomainMatcher,
-		}); err != nil {
+		// 兼容旧客户端上报证书：存为存量快照（绑定 UI 已改为引用证书管理）。
+		encKey, err := crypto.EncryptIfEnabled(req.Key, global.Config.Encrypt.Key)
+		if err != nil {
 			_ = c.Write(err.Error())
 			return
 		}
+		host.CustomCert = req.Cert
+		host.CustomKey = encKey
+		if err := db.GostClientHost.Save(host); err != nil {
+			_ = c.Write(err.Error())
+			return
+		}
+		engine.NodeAddDomain(db, host.NodeCode, host.GetCustomDomain(), req.Cert, req.Key, host.CustomForceHttps)
 		_ = c.Write("success")
 	})
 

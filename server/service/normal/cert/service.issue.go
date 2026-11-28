@@ -56,10 +56,12 @@ func (s *service) Upload(claims jwt.Claims, req UploadReq) error {
 	}
 	cert.CertPath, cert.KeyPath, cert.ExpAt = certPath, keyPath, exp.Unix()
 	cert.Status, cert.LastError = model.CERT_STATUS_VALID, ""
-	if err := db.SystemCert.Save(cert); err != nil {
-		return err
+	summary, perr := pushCert(db, cert, req.Cert, req.Key)
+	cert.PushSummary = summary
+	if perr != nil {
+		cert.LastError = "证书已保存，但推送网关失败：" + perr.Error()
 	}
-	return pushToProxy(cert.Domain, req.Cert, req.Key)
+	return db.SystemCert.Save(cert)
 }
 
 // IssueAndStore 签发并落盘、更新记录、推送网关。失败保留旧证书。供 service 与续期任务复用。
@@ -89,11 +91,13 @@ func IssueAndStore(cert *model.SystemCert) error {
 	if err := db.SystemCert.Save(cert); err != nil {
 		return fail(err)
 	}
-	if err := pushToProxy(cert.Domain, string(certPEM), string(keyPEM)); err != nil {
+	summary, perr := pushCert(db, cert, string(certPEM), string(keyPEM))
+	cert.PushSummary = summary
+	if perr != nil {
 		// 推送失败不改变证书有效状态，仅记录
-		cert.LastError = "证书已签发，但推送网关失败：" + err.Error()
-		_ = db.SystemCert.Save(cert)
+		cert.LastError = "证书已签发，但推送网关失败：" + perr.Error()
 	}
+	_ = db.SystemCert.Save(cert)
 	return nil
 }
 

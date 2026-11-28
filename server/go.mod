@@ -10,6 +10,7 @@ require (
 	github.com/fogleman/gg v1.3.0
 	github.com/gin-contrib/gzip v1.2.5
 	github.com/gin-gonic/gin v1.11.0
+	github.com/glebarez/sqlite v1.11.0
 	github.com/go-acme/lego/v4 v4.20.4
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
@@ -50,9 +51,11 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatedier/golib v0.5.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
+	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -77,6 +80,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.58.0 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
@@ -95,4 +99,8 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gorm.io/datatypes v1.2.7 // indirect
 	gorm.io/hints v1.1.2 // indirect
+	modernc.org/libc v1.22.5 // indirect
+	modernc.org/mathutil v1.5.0 // indirect
+	modernc.org/memory v1.5.0 // indirect
+	modernc.org/sqlite v1.23.1 // indirect
 )

@@ -164,6 +164,7 @@ export default {
         regionId: 'RegionId (optional)',
         issueConfirm: 'Issue a DNS-01 certificate for this domain? May take tens of seconds.',
         renewConfirm: 'Renew this certificate?',
+        pushSummary: 'Gateway Push',
     },
     pay: {
         title: 'Orders',

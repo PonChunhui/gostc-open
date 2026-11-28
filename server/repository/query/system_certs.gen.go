@@ -45,6 +45,7 @@ func newSystemCert(db *gorm.DB, opts ...gen.DOOption) systemCert {
 	_systemCert.AutoRenew = field.NewInt(tableName, "auto_renew")
 	_systemCert.Status = field.NewInt(tableName, "status")
 	_systemCert.LastError = field.NewString(tableName, "last_error")
+	_systemCert.PushSummary = field.NewString(tableName, "push_summary")
 
 	_systemCert.fillFieldMap()
 
@@ -72,6 +73,7 @@ type systemCert struct {
 	AutoRenew     field.Int
 	Status        field.Int
 	LastError     field.String
+	PushSummary   field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -105,6 +107,7 @@ func (s *systemCert) updateTableName(table string) *systemCert {
 	s.AutoRenew = field.NewInt(table, "auto_renew")
 	s.Status = field.NewInt(table, "status")
 	s.LastError = field.NewString(table, "last_error")
+	s.PushSummary = field.NewString(table, "push_summary")
 
 	s.fillFieldMap()
 
@@ -121,7 +124,7 @@ func (s *systemCert) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (s *systemCert) fillFieldMap() {
-	s.fieldMap = make(map[string]field.Expr, 17)
+	s.fieldMap = make(map[string]field.Expr, 18)
 	s.fieldMap["id"] = s.Id
 	s.fieldMap["code"] = s.Code
 	s.fieldMap["allow_edit"] = s.AllowEdit
@@ -139,6 +142,7 @@ func (s *systemCert) fillFieldMap() {
 	s.fieldMap["auto_renew"] = s.AutoRenew
 	s.fieldMap["status"] = s.Status
 	s.fieldMap["last_error"] = s.LastError
+	s.fieldMap["push_summary"] = s.PushSummary
 }
 
 func (s systemCert) clone(db *gorm.DB) systemCert {

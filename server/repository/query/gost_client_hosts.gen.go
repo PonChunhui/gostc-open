@@ -45,6 +45,7 @@ func newGostClientHost(db *gorm.DB, opts ...gen.DOOption) gostClientHost {
 	_gostClientHost.CustomKey = field.NewString(tableName, "custom_key")
 	_gostClientHost.CustomForceHttps = field.NewInt(tableName, "custom_force_https")
 	_gostClientHost.CustomDomainMatcher = field.NewInt(tableName, "custom_domain_matcher")
+	_gostClientHost.CertCode = field.NewString(tableName, "cert_code")
 	_gostClientHost.NodeCode = field.NewString(tableName, "node_code")
 	_gostClientHost.BackupNodeCode = field.NewString(tableName, "backup_node_code")
 	_gostClientHost.FailoverEnable = field.NewInt(tableName, "failover_enable")
@@ -147,6 +148,7 @@ type gostClientHost struct {
 	CustomKey            field.String // 自定义证书
 	CustomForceHttps     field.Int    // 强制HTTPS
 	CustomDomainMatcher  field.Int    // 是否为泛域名
+	CertCode             field.String // 引用证书管理证书Code
 	NodeCode             field.String // 节点编号
 	BackupNodeCode       field.String // 备用节点编号
 	FailoverEnable       field.Int    // 故障转移
@@ -217,6 +219,7 @@ func (g *gostClientHost) updateTableName(table string) *gostClientHost {
 	g.CustomKey = field.NewString(table, "custom_key")
 	g.CustomForceHttps = field.NewInt(table, "custom_force_https")
 	g.CustomDomainMatcher = field.NewInt(table, "custom_domain_matcher")
+	g.CertCode = field.NewString(table, "cert_code")
 	g.NodeCode = field.NewString(table, "node_code")
 	g.BackupNodeCode = field.NewString(table, "backup_node_code")
 	g.FailoverEnable = field.NewInt(table, "failover_enable")
@@ -265,7 +268,7 @@ func (g *gostClientHost) GetFieldByName(fieldName string) (field.OrderExpr, bool
 }
 
 func (g *gostClientHost) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 52)
+	g.fieldMap = make(map[string]field.Expr, 53)
 	g.fieldMap["id"] = g.Id
 	g.fieldMap["code"] = g.Code
 	g.fieldMap["allow_edit"] = g.AllowEdit
@@ -283,6 +286,7 @@ func (g *gostClientHost) fillFieldMap() {
 	g.fieldMap["custom_key"] = g.CustomKey
 	g.fieldMap["custom_force_https"] = g.CustomForceHttps
 	g.fieldMap["custom_domain_matcher"] = g.CustomDomainMatcher
+	g.fieldMap["cert_code"] = g.CertCode
 	g.fieldMap["node_code"] = g.NodeCode
 	g.fieldMap["backup_node_code"] = g.BackupNodeCode
 	g.fieldMap["failover_enable"] = g.FailoverEnable

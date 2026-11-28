@@ -40,6 +40,7 @@ func InitApi() {
 	}))
 
 	engine.POST("/domain", Domain)
+	engine.POST("/domain/delete", DomainDelete)
 
 	svc := &http.Server{
 		Addr:    global.Config.ApiAddr,
@@ -96,11 +97,26 @@ func Domain(c *gin.Context) {
 	}
 	// 证书续期推送可能仅带 cert/key 而不带 target：保留已有路由配置，避免清空转发目标。
 	existing, hasExisting := global.Config.Domains[req.Domain]
+	var ex *configs.DomainConfig
+	if hasExisting {
+		ex = &existing
+	}
+	global.Config.Domains[req.Domain] = mergeDomainConfig(ex, req, certFile, keyFile)
+	if err := saveConfig(); err != nil {
+		global.Logger.Error("save config fail", zap.Error(err))
+	}
+}
+
+// mergeDomainConfig 合并路由配置：续期/仅证书推送保留已有 target 与 force-https；
+// ForceHttps<0 为哨兵，表示显式保留已有 force-https（即使带了 target）。
+func mergeDomainConfig(existing *configs.DomainConfig, req DomainReq, certFile, keyFile string) configs.DomainConfig {
 	target := req.Target
 	forceHttps := req.ForceHttps == 1
-	if hasExisting {
+	if existing != nil {
 		if target == "" {
 			target = existing.Target
+			forceHttps = existing.ForceHttps
+		} else if req.ForceHttps < 0 {
 			forceHttps = existing.ForceHttps
 		}
 		if certFile == "" {
@@ -108,19 +124,47 @@ func Domain(c *gin.Context) {
 			keyFile = existing.Key
 		}
 	}
-	global.Config.Domains[req.Domain] = configs.DomainConfig{
+	return configs.DomainConfig{
 		Target:       target,
 		Cert:         certFile,
 		Key:          keyFile,
 		ForceHttps:   forceHttps,
 		DisableHttps: false,
 	}
-	marshal, err := yaml.Marshal(global.Config)
-	if err != nil {
-		global.Logger.Error("yaml.Marshal config fail", zap.String("config path", global.BASE_PATH+"/data/config.yaml"), zap.Error(err))
+}
+
+type DomainDeleteReq struct {
+	Domain    string `json:"domain"`
+	PurgeCert bool   `json:"purgeCert"`
+}
+
+// DomainDelete 移除域名路由（故障转移/解绑/删证书时清理源网关），可选删除证书文件。
+func DomainDelete(c *gin.Context) {
+	var req DomainDeleteReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.String(500, err.Error())
 		return
 	}
-	if err := os.WriteFile(global.BASE_PATH+"/data/config.yaml", marshal, 0644); err != nil {
-		global.Logger.Error("save config fail", zap.String("config path", global.BASE_PATH+"/data/config.yaml"), zap.Error(err))
+	if req.Domain == "" {
+		return
 	}
+	if global.Config.Domains != nil {
+		delete(global.Config.Domains, req.Domain)
+	}
+	if req.PurgeCert {
+		_ = os.Remove(fmt.Sprintf("%s/data/certs/%s.pem", global.BASE_PATH, req.Domain))
+		_ = os.Remove(fmt.Sprintf("%s/data/certs/%s.key", global.BASE_PATH, req.Domain))
+	}
+	if err := saveConfig(); err != nil {
+		global.Logger.Error("save config fail", zap.Error(err))
+	}
+	c.String(200, "success")
+}
+
+func saveConfig() error {
+	marshal, err := yaml.Marshal(global.Config)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(global.BASE_PATH+"/data/config.yaml", marshal, 0644)
 }

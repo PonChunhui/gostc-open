@@ -198,7 +198,12 @@ func saveAccount(email, ca string, key crypto.PrivateKey, reg *registration.Reso
 	if err = os.MkdirAll(filepath.Dir(accountFile()), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(accountFile(), raw, 0o600)
+	// 原子写：临时文件 + rename，避免并发/中断产生半截账户文件。
+	tmp := accountFile() + ".tmp"
+	if err = os.WriteFile(tmp, raw, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, accountFile())
 }
 
 // ParseExpiry 解析证书 PEM 的到期时间。

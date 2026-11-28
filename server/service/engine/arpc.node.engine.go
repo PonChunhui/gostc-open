@@ -175,6 +175,27 @@ func (e *ARpcNodeEngine) CustomDomain(tx *query.Query, domain, cert, key string,
 	return nil
 }
 
+func (e *ARpcNodeEngine) RemoveDomain(tx *query.Query, domain string, purgeCert bool) error {
+	var data = ServerDomainRemove{Domain: domain, PurgeCert: purgeCert}
+	go utils.Retry(func() error {
+		var relay string
+		if err := e.client.Call("server_domain_remove", data, &relay, time.Second*30); err != nil {
+			global.Logger.Error("send message fail", zap.Error(err))
+			return err
+		}
+		if relay != "success" {
+			global.Logger.Error("send message fail", zap.String("relay", relay))
+		}
+		return nil
+	}, 5, time.Second*5)
+	return nil
+}
+
+type ServerDomainRemove struct {
+	Domain    string `json:"domain"`
+	PurgeCert bool   `json:"purgeCert"`
+}
+
 func (e *ARpcNodeEngine) Stop(msg string) {
 	_ = e.client.CallAsync("stop", msg, func(c *arpc.Context, err error) {
 

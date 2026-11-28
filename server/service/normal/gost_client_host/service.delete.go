@@ -36,6 +36,10 @@ func (service *service) Delete(claims jwt.Claims, req DeleteReq) error {
 			return errors.New("操作失败")
 		}
 		engine.ClientRemoveHostConfig(tx, *host, host.Node)
+		// 清理网关上的自定义域名路由。
+		if d := host.GetCustomDomain(); d != "" {
+			engine.NodeRemoveDomain(tx, host.NodeCode, d, false)
+		}
 		cache.DelTunnelInfo(req.Code)
 		cache.DelAdmissionInfo(req.Code)
 		return nil

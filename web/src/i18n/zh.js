@@ -164,6 +164,7 @@ export default {
         regionId: 'RegionId(可选)',
         issueConfirm: '确认对该域名发起DNS-01签发？可能需要数十秒。',
         renewConfirm: '确认续期该证书？',
+        pushSummary: '推送网关结果',
     },
     pay: {
         title: '充值订单',

@@ -35,6 +35,25 @@ func certExpireScan() {
 				"证书即将到期告警", fmt.Sprintf("隧道 %s 的证书将于 %s 到期（剩余约 %d 天）", h.Name, notAfter.Format(time.DateOnly), days))
 		}
 	}
+	// 证书管理（SystemCert）临期/过期扫描。
+	certs, err := db.SystemCert.Where(db.SystemCert.ExpAt.Gt(0)).Find()
+	if err != nil {
+		log.Warn("证书管理到期扫描失败", zap.Error(err))
+		return
+	}
+	now := time.Now()
+	for _, c := range certs {
+		exp := time.Unix(c.ExpAt, 0)
+		if exp.Before(now) && c.Status != model.CERT_STATUS_EXPIRED {
+			c.Status = model.CERT_STATUS_EXPIRED
+			_ = db.SystemCert.Save(c)
+		}
+		if exp.Before(threshold) {
+			days := int(time.Until(exp).Hours() / 24)
+			alert.Dispatch(model.ALERT_EVENT_CERT_EXPIRE, model.ALERT_TARGET_ALL, c.Code, c.UserCode,
+				"证书即将到期告警", fmt.Sprintf("证书 %s 将于 %s 到期（剩余约 %d 天）", c.Domain, exp.Format(time.DateOnly), days))
+		}
+	}
 }
 
 func parseCertNotAfter(certPEM string) (time.Time, bool) {

@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"server/global"
 	"server/model"
-	"server/pkg/crypto"
+	"server/service/common/certpick"
 	"server/repository"
 	cache2 "server/repository/cache"
 	"server/repository/query"
@@ -128,9 +128,24 @@ func doSwitch(db *query.Query, it failoverItem, target, reason string, log *zap.
 					domain = host.DomainPrefix + "." + backup.Domain
 				}
 			}
-			cert := crypto.DecryptSafe(host.CustomCert, global.Config.Encrypt.Key)
-			key := crypto.DecryptSafe(host.CustomKey, global.Config.Encrypt.Key)
+			// 证书优先引用/同域名通配（续期后自动取最新），回退存量快照。
+			cert, key := certpick.ForDomain(db, host, domain)
 			engine.NodeAddDomain(db, target, domain, cert, key, host.CustomForceHttps)
+			// 清理源网关旧路由（隧道已离开源节点）。
+			oldDomain := host.CustomDomain
+			if host.CustomDomainMatcher == 1 && oldDomain != "" {
+				oldDomain = "*." + oldDomain
+			}
+			if oldDomain == "" {
+				if stored := cache2.GetFailoverDomain(it.Code); stored != "" {
+					oldDomain = stored
+				} else if primary != nil {
+					oldDomain = host.DomainPrefix + "." + primary.Domain
+				}
+			}
+			if oldDomain != "" {
+				engine.NodeRemoveDomain(db, it.NodeCode, oldDomain, false)
+			}
 			if global.Config.Failover.DNSFollow {
 				if reason == model.FAILOVER_REASON_FAILOVER {
 					cache2.SetFailoverDomain(it.Code, domain)

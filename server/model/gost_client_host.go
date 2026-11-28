@@ -14,6 +14,7 @@ type GostClientHost struct {
 	CustomKey           string     `gorm:"column:custom_key;comment:自定义证书"`
 	CustomForceHttps    int        `gorm:"column:custom_force_https;size:1;comment:强制HTTPS"`
 	CustomDomainMatcher int        `gorm:"column:custom_domain_matcher;size:1;comment:是否为泛域名"`
+	CertCode            string     `gorm:"column:cert_code;index;comment:引用证书管理证书Code"`
 	NodeCode            string     `gorm:"column:node_code;index;comment:节点编号"`
 	BackupNodeCode      string     `gorm:"column:backup_node_code;index;comment:备用节点编号"`
 	FailoverEnable      int        `gorm:"column:failover_enable;size:1;default:2;comment:故障转移"`

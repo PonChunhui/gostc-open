@@ -135,6 +135,7 @@ func (svc *Node) run() (err error) {
 	event.ServerHandle(client, svc.generate.HttpUrl(), callback, checkUpdate)
 	event.PortCheckHandle(client)
 	event.ServerDomainHandle(client, svc.proxyBaseUrl)
+	event.ServerDomainRemoveHandle(client, svc.proxyBaseUrl)
 	event.StopHandle(client, func() {
 		svc.Stop()
 	})

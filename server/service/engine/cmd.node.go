@@ -58,3 +58,20 @@ func NodeAddDomain(tx *query.Query, code, domain, cert, key string, forceHttps i
 	}
 	engine.GetNode().CustomDomain(tx, domain, cert, key, forceHttps)
 }
+
+// NodeRenewDomain 续期推送：仅更新证书，保留已有 target 与 force-https（哨兵 -1）。
+func NodeRenewDomain(tx *query.Query, code, domain, cert, key string) {
+	NodeAddDomain(tx, code, domain, cert, key, -1)
+}
+
+// NodeRemoveDomain 移除节点网关上的域名路由（转移/解绑/删证书清理源网关）。
+func NodeRemoveDomain(tx *query.Query, code, domain string, purgeCert bool) {
+	engine, ok := EngineRegistry.Get(code)
+	if !ok {
+		return
+	}
+	if !engine.GetNode().IsRunning() {
+		return
+	}
+	engine.GetNode().RemoveDomain(tx, domain, purgeCert)
+}

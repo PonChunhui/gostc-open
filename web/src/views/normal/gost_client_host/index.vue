@@ -1,5 +1,5 @@
 <script setup>
-import {h, onBeforeMount, ref, watch} from "vue";
+import {computed, h, onBeforeMount, ref, watch} from "vue";
 import {
   apiNormalGostClientHostDelete,
   apiNormalGostClientHostDomain,
@@ -28,6 +28,7 @@ import {apiNormalGostObsTunnelMonth} from "../../../api/normal/gost_obs.js";
 import Obs from "../../../components/Obs.vue";
 import {localStore} from "../../../store/local.js";
 import {apiNormalGostClientList} from "../../../api/normal/gost_client.js";
+import {apiNormalCertPage} from "../../../api/normal/cert.js";
 import {useI18n} from "vue-i18n";
 import {useHealth, useBatch} from "../../../utils/useTunnelEnhance.js";
 
@@ -92,14 +93,15 @@ const state = ref({
     data: {
       code: '',
       customDomain: '',
-      customCert: '',
-      customKey: '',
+      certCode: '',
       customForceHttps: 0,
       domainMatcher: 0,
     },
     nodeAddress: '',
     customEnable: 2,
-    allowDomainMatcher: 0
+    allowDomainMatcher: 0,
+    certList: [],
+    certLoading: false,
   },
   clients: [],
   migrate: {
@@ -241,17 +243,69 @@ const openDomainModal = (row) => {
   state.value.domain.data = {
     code: row.code,
     customDomain: row.customDomain,
-    customCert: row.customCert,
-    customKey: row.customKey,
+    certCode: row.certCode || '',
     customForceHttps: row.customForceHttps,
     domainMatcher: row.customDomainMatcher,
   }
   state.value.domain.open = true
+  loadCertOptions()
 }
 
 const closeDomainModal = () => {
   state.value.domain.open = false
 }
+
+// 证书域名是否覆盖绑定域名：精确相等，或证书为泛域名 *.base 且绑定域名是 base(或其子域)
+const certCovers = (certDomain, bound) => {
+  const c = (certDomain || '').toLowerCase().replace(/\.$/, '')
+  const b = (bound || '').toLowerCase().replace(/\.$/, '')
+  if (!c || !b) return false
+  if (c === b) return true
+  if (c.startsWith('*.')) {
+    const base = c.slice(2)
+    const bb = b.startsWith('*.') ? b.slice(2) : b
+    return bb === base || bb.endsWith('.' + base)
+  }
+  return false
+}
+
+// 当前绑定生效域名（泛域名加 *. 前缀）
+const boundDomain = computed(() => {
+  const d = (state.value.domain.data.customDomain || '').trim()
+  if (!d) return ''
+  return (state.value.domain.data.domainMatcher === 1 ? '*.' : '') + d
+})
+
+const loadCertOptions = async () => {
+  try {
+    state.value.domain.certLoading = true
+    const res = await apiNormalCertPage({page: 1, size: 200})
+    state.value.domain.certList = (res.data.list || []).filter(c => c.status === 1)
+  } finally {
+    state.value.domain.certLoading = false
+  }
+}
+
+// 下拉选项：按绑定域名过滤；绑定域名为空显示全部有效证书；保留当前已选(即使不匹配, 便于回显+告警)
+const certOptions = computed(() => {
+  const bound = boundDomain.value
+  const list = state.value.domain.certList
+  let matched = bound ? list.filter(c => certCovers(c.domain, bound)) : list.slice()
+  const sel = state.value.domain.data.certCode
+  if (sel && !matched.some(c => c.code === sel)) {
+    const s = list.find(c => c.code === sel)
+    if (s) matched = [s, ...matched]
+  }
+  return matched.map(c => ({label: c.domain, value: c.code}))
+})
+
+const certMismatch = computed(() => {
+  const sel = state.value.domain.data.certCode
+  const bound = boundDomain.value
+  if (!sel || !bound) return false
+  const c = state.value.domain.certList.find(x => x.code === sel)
+  return !!c && !certCovers(c.domain, bound)
+})
 
 const domainFunc = async () => {
   try {
@@ -723,14 +777,19 @@ const operatorRenderLabel = (option) => {
           }}</strong>
         </n-alert>
         <p/>
-        <n-form-item path="customCert" label="证书(PEM，不设置，则使用默认TLS)">
-          <n-input type="textarea" :autosize="{minRows:3,maxRows:6}" v-model:value="state.domain.data.customCert"
-                   placeholder="-----BEGIN CERTIFICATE-----"></n-input>
+        <n-form-item path="certCode" label="引用证书(不设置，则使用默认TLS)">
+          <n-select
+              clearable
+              filterable
+              :loading="state.domain.certLoading"
+              :options="certOptions"
+              v-model:value="state.domain.data.certCode"
+              placeholder="选择证书管理中的有效证书"
+          ></n-select>
         </n-form-item>
-        <n-form-item path="customKey" label="私钥(KEY，不设置，则使用默认TLS)">
-          <n-input type="textarea" :autosize="{minRows:3,maxRows:6}" v-model:value="state.domain.data.customKey"
-                   placeholder="-----BEGIN EC PRIVATE KEY-----"></n-input>
-        </n-form-item>
+        <n-alert type="warning" v-if="certMismatch" show-icon>
+          证书域名与绑定域名不匹配
+        </n-alert>
       </n-form>
     </Modal>
 

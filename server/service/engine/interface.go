@@ -56,6 +56,7 @@ type INode interface {
 	Config(tx *query.Query) error                                                 // 服务端配置
 	Ingress(tx *query.Query) error                                                // 域名解析映射配置
 	CustomDomain(tx *query.Query, domain, cert, key string, forceHttps int) error // 自定义域名
+	RemoveDomain(tx *query.Query, domain string, purgeCert bool) error            // 移除自定义域名路由
 }
 
 type Engine struct {
@@ -206,5 +207,9 @@ func (d DefaultNodeImpl) Ingress(tx *query.Query) error {
 }
 
 func (d DefaultNodeImpl) CustomDomain(tx *query.Query, domain, cert, key string, forceHttps int) error {
+	return nil
+}
+
+func (d DefaultNodeImpl) RemoveDomain(tx *query.Query, domain string, purgeCert bool) error {
 	return nil
 }
