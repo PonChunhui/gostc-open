@@ -11,4 +11,5 @@ func InitMetric(group *gin.RouterGroup) {
 	g := group.Group("metric", middleware.Auth(global.Jwt))
 	g.POST("realtime", metric.Realtime)
 	g.POST("history", metric.History)
+	g.POST("objects", metric.Objects)
 }

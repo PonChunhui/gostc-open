@@ -35,3 +35,12 @@ func Top(c *gin.Context) {
 	}
 	bean.Response.OkData(c, svr.Top(req))
 }
+
+func Objects(c *gin.Context) {
+	var req service.ObjectsReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		bean.Response.Param(c, err)
+		return
+	}
+	bean.Response.OkData(c, svr.Objects(req))
+}

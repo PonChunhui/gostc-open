@@ -23,6 +23,63 @@ func (s *service) History(req metricservice.HistoryReq) []metricservice.HistoryP
 	return metricservice.Service.History(req)
 }
 
+// ObjectItem 可供指标查询选择的对象（编码+名称）。
+type ObjectItem struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+// ObjectsReq 按对象类型列出可选对象。
+type ObjectsReq struct {
+	OriginKind int `json:"originKind"` // 1节点 2客户端 3隧道 4用户
+}
+
+// Objects 返回某类全部对象，供前端实时/历史曲线选择，避免手填编码。
+func (s *service) Objects(req ObjectsReq) []ObjectItem {
+	db, _, _ := repository.Get("")
+	items := make([]ObjectItem, 0)
+	switch req.OriginKind {
+	case 1:
+		nodes, _ := db.GostNode.Find()
+		for _, n := range nodes {
+			items = append(items, ObjectItem{Code: n.Code, Name: n.Name})
+		}
+	case 2:
+		clients, _ := db.GostClient.Find()
+		for _, c := range clients {
+			items = append(items, ObjectItem{Code: c.Code, Name: c.Name})
+		}
+	case 3:
+		hosts, _ := db.GostClientHost.Find()
+		for _, h := range hosts {
+			items = append(items, ObjectItem{Code: h.Code, Name: h.Name})
+		}
+		forwards, _ := db.GostClientForward.Find()
+		for _, f := range forwards {
+			items = append(items, ObjectItem{Code: f.Code, Name: f.Name})
+		}
+		proxies, _ := db.GostClientProxy.Find()
+		for _, p := range proxies {
+			items = append(items, ObjectItem{Code: p.Code, Name: p.Name})
+		}
+		tunnels, _ := db.GostClientTunnel.Find()
+		for _, t := range tunnels {
+			items = append(items, ObjectItem{Code: t.Code, Name: t.Name})
+		}
+		p2ps, _ := db.GostClientP2P.Find()
+		for _, p := range p2ps {
+			items = append(items, ObjectItem{Code: p.Code, Name: p.Name})
+		}
+	case 4:
+		users, _ := db.SystemUser.Find()
+		for _, u := range users {
+			items = append(items, ObjectItem{Code: u.Code, Name: u.Account})
+		}
+	}
+	sort.Slice(items, func(i, j int) bool { return items[i].Name < items[j].Name })
+	return items
+}
+
 // TopReq 全站某类对象按即时指标排序取 TopN。
 type TopReq struct {
 	OriginKind int    `json:"originKind"` // 1节点 2客户端 3隧道 4用户

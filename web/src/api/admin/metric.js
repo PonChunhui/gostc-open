@@ -13,3 +13,7 @@ export const apiAdminMetricHistory = (data) => {
 export const apiAdminMetricTop = (data) => {
     return request.request({url: `${baseUrl}/top`, method: 'POST', data})
 }
+
+export const apiAdminMetricObjects = (data) => {
+    return request.request({url: `${baseUrl}/objects`, method: 'POST', data})
+}

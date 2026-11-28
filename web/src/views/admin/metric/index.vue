@@ -1,7 +1,7 @@
 <script setup>
 import {computed, h, nextTick, onBeforeMount, onBeforeUnmount, ref, watch} from "vue";
 import * as echarts from "echarts";
-import {apiAdminMetricRealtime, apiAdminMetricHistory, apiAdminMetricTop} from "../../../api/admin/metric.js";
+import {apiAdminMetricRealtime, apiAdminMetricHistory, apiAdminMetricTop, apiAdminMetricObjects} from "../../../api/admin/metric.js";
 import AppCard from "../../../layout/components/AppCard.vue";
 import SearchCard from "../../../layout/components/SearchCard.vue";
 import SearchItem from "../../../layout/components/SearchItem.vue";
@@ -33,11 +33,11 @@ const state = ref({
   top: {originKind: 1, metric: 'input_rate', limit: 10, list: [], loading: false},
   rt: {
     originKind: 1, originCode: '', metrics: ['input_rate', 'output_rate', 'connections'],
-    autoRefresh: true, gauge: {}, loading: false,
+    autoRefresh: true, gauge: {}, loading: false, objects: [],
   },
   hist: {
     originKind: 1, originCode: '', metric: 'input_rate',
-    startTs: Date.now() - 3600 * 1000, endTs: Date.now(), loading: false,
+    startTs: Date.now() - 3600 * 1000, endTs: Date.now(), loading: false, objects: [],
   },
 })
 
@@ -146,6 +146,20 @@ const historyFunc = async () => {
   } finally { state.value.hist.loading = false }
 }
 
+// 加载某查询区(rt/hist)的可选对象，默认选中第一个，避免手填编码导致空曲线。
+const loadObjects = async (which) => {
+  const st = state.value[which]
+  try {
+    const res = await apiAdminMetricObjects({originKind: st.originKind})
+    st.objects = res.data || []
+  } catch (e) { st.objects = [] }
+  if (!st.objects.find(o => o.code === st.originCode)) {
+    st.originCode = st.objects.length ? st.objects[0].code : ''
+  }
+}
+const onRtKind = async (v) => { state.value.rt.originKind = v; await loadObjects('rt'); realtimeFunc() }
+const onHistKind = async (v) => { state.value.hist.originKind = v; await loadObjects('hist'); historyFunc() }
+
 const setupTimer = () => {
   if (timer) { clearInterval(timer); timer = null }
   if (state.value.rt.autoRefresh) {
@@ -166,6 +180,8 @@ onBeforeMount(async () => {
   window.addEventListener('resize', resizeCharts)
   setupTimer()
   topFunc()
+  await loadObjects('rt'); realtimeFunc()
+  await loadObjects('hist'); historyFunc()
 })
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer)
@@ -202,9 +218,12 @@ onBeforeUnmount(() => {
     <SearchCard :show-border="false" space>
       <SearchItem type="select" :label-width="80" label="对象类型" :options="kindOptions"
                   :options-key-value="{key:'key',value:'value'}" :default="state.rt.originKind"
-                  @onChange="value => state.rt.originKind = value"/>
-      <SearchItem type="input" :label-width="80" label="对象编码" clearable
-                  @onChange="value => state.rt.originCode = value"/>
+                  @onChange="onRtKind"/>
+      <SearchItem type="custom" :label-width="80" label="对象">
+        <n-select v-model:value="state.rt.originCode" :options="state.rt.objects"
+                  label-field="name" value-field="code" filterable clearable placeholder="选择对象"
+                  style="min-width:220px" @update:value="realtimeFunc"/>
+      </SearchItem>
       <SearchItem type="custom">
         <n-space>
           <n-button type="info" :focusable="false" :loading="state.rt.loading" @click="realtimeFunc">查询实时</n-button>
@@ -234,9 +253,12 @@ onBeforeUnmount(() => {
     <SearchCard :show-border="false" space>
       <SearchItem type="select" :label-width="80" label="对象类型" :options="kindOptions"
                   :options-key-value="{key:'key',value:'value'}" :default="state.hist.originKind"
-                  @onChange="value => state.hist.originKind = value"/>
-      <SearchItem type="input" :label-width="80" label="对象编码" clearable
-                  @onChange="value => state.hist.originCode = value"/>
+                  @onChange="onHistKind"/>
+      <SearchItem type="custom" :label-width="80" label="对象">
+        <n-select v-model:value="state.hist.originCode" :options="state.hist.objects"
+                  label-field="name" value-field="code" filterable clearable placeholder="选择对象"
+                  style="min-width:220px" @update:value="historyFunc"/>
+      </SearchItem>
       <SearchItem type="custom">
         <n-space>
           <n-button type="info" :focusable="false" :loading="state.hist.loading" @click="historyFunc">查询历史</n-button>

@@ -9,3 +9,7 @@ export const apiNormalMetricRealtime = (data) => {
 export const apiNormalMetricHistory = (data) => {
     return request.request({url: `${baseUrl}/history`, method: 'POST', data})
 }
+
+export const apiNormalMetricObjects = (data) => {
+    return request.request({url: `${baseUrl}/objects`, method: 'POST', data})
+}

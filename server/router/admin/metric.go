@@ -12,4 +12,5 @@ func InitMetric(group *gin.RouterGroup) {
 	g.POST("realtime", metric.Realtime)
 	g.POST("history", metric.History)
 	g.POST("top", metric.Top)
+	g.POST("objects", metric.Objects)
 }

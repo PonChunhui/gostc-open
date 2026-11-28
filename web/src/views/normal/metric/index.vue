@@ -2,7 +2,7 @@
 import {computed, nextTick, onBeforeMount, onBeforeUnmount, ref, watch} from "vue";
 import {useI18n} from "vue-i18n";
 import * as echarts from "echarts";
-import {apiNormalMetricRealtime, apiNormalMetricHistory} from "../../../api/normal/metric.js";
+import {apiNormalMetricRealtime, apiNormalMetricHistory, apiNormalMetricObjects} from "../../../api/normal/metric.js";
 import AppCard from "../../../layout/components/AppCard.vue";
 import SearchCard from "../../../layout/components/SearchCard.vue";
 import SearchItem from "../../../layout/components/SearchItem.vue";
@@ -24,7 +24,7 @@ const state = ref({
     originKind: 1, originCode: '', mode: 'realtime',
     metrics: ['connections'], metric: 'connections',
     startTs: Date.now() - 3600 * 1000, endTs: Date.now(),
-    autoRefresh: true,
+    autoRefresh: true, objects: [],
   },
   loading: false,
   gauge: {},
@@ -97,6 +97,19 @@ const queryFunc = () => {
   else historyFunc()
 }
 
+// 加载可选对象并默认选中第一个，避免手填编码导致空曲线。
+const loadObjects = async () => {
+  const f = state.value.form
+  try {
+    const res = await apiNormalMetricObjects({originKind: f.originKind})
+    f.objects = res.data || []
+  } catch (e) { f.objects = [] }
+  if (!f.objects.find(o => o.code === f.originCode)) {
+    f.originCode = f.objects.length ? f.objects[0].code : ''
+  }
+}
+const onKind = async (v) => { state.value.form.originKind = v; await loadObjects(); queryFunc() }
+
 const setupTimer = () => {
   if (timer) { clearInterval(timer); timer = null }
   if (state.value.form.mode === 'realtime' && state.value.form.autoRefresh) {
@@ -113,6 +126,8 @@ onBeforeMount(async () => {
     window.addEventListener('resize', resizeChart)
   }
   setupTimer()
+  await loadObjects()
+  queryFunc()
 })
 const resizeChart = () => { if (chart) chart.resize() }
 onBeforeUnmount(() => {
@@ -127,9 +142,12 @@ onBeforeUnmount(() => {
     <SearchCard :show-border="false" space>
       <SearchItem type="select" :label-width="80" :label="t('metric.originKind')" :options="kindOptions"
                   :options-key-value="{key:'key',value:'value'}" :default="state.form.originKind"
-                  @onChange="value => state.form.originKind = value"/>
-      <SearchItem type="input" :label-width="80" :label="t('metric.originCode')" clearable
-                  @onChange="value => state.form.originCode = value"/>
+                  @onChange="onKind"/>
+      <SearchItem type="custom" :label-width="80" :label="t('metric.originCode')">
+        <n-select v-model:value="state.form.originCode" :options="state.form.objects"
+                  label-field="name" value-field="code" filterable clearable :placeholder="t('metric.originCode')"
+                  style="min-width:220px" @update:value="queryFunc"/>
+      </SearchItem>
       <SearchItem type="radio-btn" :label-width="60" :label="t('metric.realtime')"
                   :options="[{key:'realtime',value:t('metric.realtime')},{key:'history',value:t('metric.history')}]"
                   :options-key-value="{key:'key',value:'value'}" :default="state.form.mode"

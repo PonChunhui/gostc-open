@@ -3,6 +3,7 @@ package metric
 import (
 	"github.com/gin-gonic/gin"
 	"server/pkg/bean"
+	"server/router/middleware"
 	"server/service/normal/metric"
 )
 
@@ -24,4 +25,13 @@ func History(c *gin.Context) {
 		return
 	}
 	bean.Response.OkData(c, svr.History(req))
+}
+
+func Objects(c *gin.Context) {
+	var req service.ObjectsReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		bean.Response.Param(c, err)
+		return
+	}
+	bean.Response.OkData(c, svr.Objects(middleware.GetClaims(c), req))
 }
