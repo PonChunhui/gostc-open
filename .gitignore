@@ -60,3 +60,5 @@ bili_cookies.txt
 /.tmp_ssh
 /.pnpm-store
 *.log
+*_linux_amd64
+
