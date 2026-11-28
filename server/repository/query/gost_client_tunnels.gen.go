@@ -41,6 +41,8 @@ func newGostClientTunnel(db *gorm.DB, opts ...gen.DOOption) gostClientTunnel {
 	_gostClientTunnel.VKey = field.NewString(tableName, "v_key")
 	_gostClientTunnel.NoDelay = field.NewInt(tableName, "no_delay")
 	_gostClientTunnel.NodeCode = field.NewString(tableName, "node_code")
+	_gostClientTunnel.BackupNodeCode = field.NewString(tableName, "backup_node_code")
+	_gostClientTunnel.FailoverEnable = field.NewInt(tableName, "failover_enable")
 	_gostClientTunnel.ClientCode = field.NewString(tableName, "client_code")
 	_gostClientTunnel.UserCode = field.NewString(tableName, "user_code")
 	_gostClientTunnel.Enable = field.NewInt(tableName, "enable")
@@ -123,6 +125,8 @@ type gostClientTunnel struct {
 	VKey           field.String // 访问密钥
 	NoDelay        field.Int    // 无等待延迟
 	NodeCode       field.String // 节点编号
+	BackupNodeCode field.String // 备用节点编号
+	FailoverEnable field.Int    // 故障转移
 	ClientCode     field.String // 客户端编号
 	UserCode       field.String // 用户编号
 	Enable         field.Int    // 启用状态
@@ -173,6 +177,8 @@ func (g *gostClientTunnel) updateTableName(table string) *gostClientTunnel {
 	g.VKey = field.NewString(table, "v_key")
 	g.NoDelay = field.NewInt(table, "no_delay")
 	g.NodeCode = field.NewString(table, "node_code")
+	g.BackupNodeCode = field.NewString(table, "backup_node_code")
+	g.FailoverEnable = field.NewInt(table, "failover_enable")
 	g.ClientCode = field.NewString(table, "client_code")
 	g.UserCode = field.NewString(table, "user_code")
 	g.Enable = field.NewInt(table, "enable")
@@ -205,7 +211,7 @@ func (g *gostClientTunnel) GetFieldByName(fieldName string) (field.OrderExpr, bo
 }
 
 func (g *gostClientTunnel) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 32)
+	g.fieldMap = make(map[string]field.Expr, 34)
 	g.fieldMap["id"] = g.Id
 	g.fieldMap["code"] = g.Code
 	g.fieldMap["allow_edit"] = g.AllowEdit
@@ -219,6 +225,8 @@ func (g *gostClientTunnel) fillFieldMap() {
 	g.fieldMap["v_key"] = g.VKey
 	g.fieldMap["no_delay"] = g.NoDelay
 	g.fieldMap["node_code"] = g.NodeCode
+	g.fieldMap["backup_node_code"] = g.BackupNodeCode
+	g.fieldMap["failover_enable"] = g.FailoverEnable
 	g.fieldMap["client_code"] = g.ClientCode
 	g.fieldMap["user_code"] = g.UserCode
 	g.fieldMap["enable"] = g.Enable

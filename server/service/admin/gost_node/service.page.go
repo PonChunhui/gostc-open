@@ -60,6 +60,9 @@ type Item struct {
 	MaxPoolCount    int   `json:"maxPoolCount"`
 
 	TunnelLimit int             `json:"tunnelLimit"` // 隧道数量上限，0表示不限制
+	GroupCode   string          `json:"groupCode"`
+	Priority    int             `json:"priority"`
+	Weight      int             `json:"weight"`
 	TunnelCount int64           `json:"tunnelCount"` // 已分配隧道数量
 	Load        cache2.NodeLoad `json:"load"`        // 节点实时负载
 }
@@ -156,6 +159,9 @@ func (service *service) Page(req PageReq) (list []Item, total int64) {
 			LimitKind:          node.LimitKind,
 			MaxPoolCount:       node.MaxPoolCount,
 			TunnelLimit:        node.TunnelLimit,
+			GroupCode:          node.GroupCode,
+			Priority:           node.Priority,
+			Weight:             node.Weight,
 			TunnelCount:        tunnelCounts[node.Code],
 			Load:               cache2.GetNodeLoad(node.Code),
 		})

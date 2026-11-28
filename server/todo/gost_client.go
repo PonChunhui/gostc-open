@@ -40,6 +40,8 @@ func gostClient() {
 			Code:        host.Code,
 			WhiteEnable: host.WhiteEnable,
 			WhiteList:   host.GetWhiteList(),
+			BlackEnable: host.BlackEnable,
+			BlackList:   host.GetBlackList(),
 		})
 	}
 
@@ -62,6 +64,8 @@ func gostClient() {
 			Code:        forward.Code,
 			WhiteEnable: forward.WhiteEnable,
 			WhiteList:   forward.GetWhiteList(),
+			BlackEnable: forward.BlackEnable,
+			BlackList:   forward.GetBlackList(),
 		})
 	}
 

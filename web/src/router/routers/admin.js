@@ -205,6 +205,61 @@ export const adminRouters = [
                 }
             },
             {
+                path: 'client/version',
+                name: 'AdminClientVersion',
+                component: () => import('../../views/admin/client_version/index.vue'),
+                meta: {
+                    title: '客户端版本',
+                    layout: 'simple',
+                    hidden: 2,
+                    icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M512 640L320 448l45.25-45.25L480 517.5V128h64v389.5l114.75-114.75L704 448 512 640z" fill="#888888"></path><path d="M128 576h64v256h640V576h64v288H128V576z" fill="#888888"></path></svg>',
+                }
+            },
+            {
+                path: 'gost/node/group',
+                name: 'AdminGostNodeGroup',
+                component: () => import('../../views/admin/node_group/index.vue'),
+                meta: {
+                    title: '节点分组',
+                    layout: 'simple',
+                    hidden: 2,
+                    icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M128 128h320v320H128V128z m448 0h320v320H576V128z m-448 448h320v320H128V576z m448 0h320v320H576V576z" fill="#888888"></path></svg>',
+                }
+            },
+            {
+                path: 'gost/client/health',
+                name: 'AdminHealth',
+                component: () => import('../../views/admin/health/index.vue'),
+                meta: {
+                    title: '健康监控',
+                    layout: 'simple',
+                    hidden: 2,
+                    icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" fill="#888888"></path><path d="M472 320h80v152h152v80H552v152h-80V552H320v-80h152z" fill="#888888"></path></svg>',
+                }
+            },
+            {
+                path: 'alert',
+                name: 'AdminAlert',
+                component: () => import('../../views/admin/alert/index.vue'),
+                meta: {
+                    title: '告警通知',
+                    layout: 'simple',
+                    hidden: 2,
+                    icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M512 960c44.2 0 80-35.8 80-80H432c0 44.2 35.8 80 80 80z m320-224V480c0-147.3-100.6-271.4-236-309.8V144c0-46.4-37.6-84-84-84s-84 37.6-84 84v26.2C292.6 208.6 192 332.7 192 480v256l-64 64v32h768v-32l-64-64z" fill="#888888"></path></svg>',
+                }
+            },
+            {
+                path: 'metric',
+                name: 'AdminMetric',
+                component: () => import('../../views/admin/metric/index.vue'),
+                meta: {
+                    title: '指标曲线',
+                    layout: 'simple',
+                    hidden: 2,
+                    icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M128 832h768v64H128z M192 448h128v320H192z M448 256h128v512H448z M704 576h128v192H704z" fill="#888888"></path></svg>',
+                }
+            },
+            {
                 path: 'admin/about',
                 name: 'AdminAbout',
                 component: () => import('../../views/admin/about/index.vue'),

@@ -24,6 +24,16 @@ import moment from "moment/moment.js";
 import {apiNormalGostObsNodeMonth} from "../../../api/normal/gost_obs.js";
 import Obs from "../../../components/Obs.vue";
 import {localStore} from "../../../store/local.js";
+import {apiAdminNodeGroupPage} from "../../../api/admin/gost_node_group.js";
+
+const groups = ref([])
+const loadGroups = async () => {
+  try {
+    const res = await apiAdminNodeGroupPage({page: 1, size: 1000})
+    groups.value = res.data.list || []
+  } catch (e) {
+  }
+}
 
 const state = ref({
   table: {
@@ -67,6 +77,9 @@ const state = ref({
       limitKind: 0,
       maxPoolCount: 10,
       tunnelLimit: 0,
+      groupCode: '',
+      priority: 0,
+      weight: 1,
     },
     dataRules: {
       name: requiredRule('请输入名称'),
@@ -103,6 +116,9 @@ const state = ref({
       limitKind: 0,
       maxPoolCount: 10,
       tunnelLimit: 0,
+      groupCode: '',
+      priority: 0,
+      weight: 1,
     },
     dataRules: {
       name: requiredRule('请输入名称'),
@@ -176,6 +192,9 @@ const openCreate = () => {
     limitKind: 0,
     maxPoolCount: 10,
     tunnelLimit: 0,
+    groupCode: '',
+    priority: 0,
+    weight: 1,
   }
   state.value.create.open = true
 }
@@ -353,6 +372,7 @@ const nodeObsLimitFunc = (row) => {
 onBeforeMount(() => {
   pageFunc()
   getRules()
+  loadGroups()
 })
 
 </script>
@@ -673,6 +693,24 @@ onBeforeMount(() => {
               ></n-select>
             </n-form-item>
           </n-tab-pane>
+          <n-tab-pane name="group" tab="分组调度">
+            <n-form-item path="groupCode" label="节点分组">
+              <n-select
+                  v-model:value="state.create.data.groupCode"
+                  :options="groups"
+                  label-field="name"
+                  value-field="code"
+                  clearable
+                  placeholder="不分组"
+              ></n-select>
+            </n-form-item>
+            <n-form-item path="priority" label="优先级(故障转移,越小越优先)">
+              <n-input-number v-model:value="state.create.data.priority" :min="0"></n-input-number>
+            </n-form-item>
+            <n-form-item path="weight" label="权重(加权调度)">
+              <n-input-number v-model:value="state.create.data.weight" :min="0"></n-input-number>
+            </n-form-item>
+          </n-tab-pane>
         </n-tabs>
       </n-form>
     </Modal>
@@ -866,6 +904,24 @@ onBeforeMount(() => {
                   :default-value="state.update.data.limitKind"
                   :options="[{label:'全部',value:0},{label:'上行',value:1},{label:'下行',value:2}]"
               ></n-select>
+            </n-form-item>
+          </n-tab-pane>
+          <n-tab-pane name="group" tab="分组调度">
+            <n-form-item path="groupCode" label="节点分组">
+              <n-select
+                  v-model:value="state.update.data.groupCode"
+                  :options="groups"
+                  label-field="name"
+                  value-field="code"
+                  clearable
+                  placeholder="不分组"
+              ></n-select>
+            </n-form-item>
+            <n-form-item path="priority" label="优先级(故障转移,越小越优先)">
+              <n-input-number v-model:value="state.update.data.priority" :min="0"></n-input-number>
+            </n-form-item>
+            <n-form-item path="weight" label="权重(加权调度)">
+              <n-input-number v-model:value="state.update.data.weight" :min="0"></n-input-number>
             </n-form-item>
           </n-tab-pane>
         </n-tabs>

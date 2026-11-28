@@ -38,6 +38,9 @@ type UpdateReq struct {
 	LimitTotal      int `json:"limitTotal"`
 	LimitKind       int `json:"limitKind"`
 	TunnelLimit     int `json:"tunnelLimit"`
+	GroupCode       string `json:"groupCode"`
+	Priority        int    `json:"priority"`
+	Weight          int    `json:"weight"`
 }
 
 func (service *service) Update(req UpdateReq) error {
@@ -76,6 +79,11 @@ func (service *service) Update(req UpdateReq) error {
 	node.LimitTotal = req.LimitTotal
 	node.LimitKind = req.LimitKind
 	node.TunnelLimit = req.TunnelLimit
+	node.GroupCode = req.GroupCode
+	node.Priority = req.Priority
+	if req.Weight > 0 {
+		node.Weight = req.Weight
+	}
 	// 生成新的指纹
 	newFingerprint := node.GenerateFingerprint()
 	if oldFingerprint == newFingerprint {

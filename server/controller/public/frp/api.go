@@ -3,7 +3,9 @@ package frp
 import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
+	cache2 "server/repository/cache"
 	"server/service/public/frp"
+	"strings"
 )
 
 var svr = service.Service
@@ -84,6 +86,14 @@ type CloseProxyReq struct {
 }
 
 func CloseProxy(c *gin.Context) {
+	var req CloseProxyReq
+	if err := c.ShouldBindJSON(&req); err == nil {
+		reqCode := strings.Split(req.Content.ProxyName, "_")[0]
+		tunnelCode := cache2.GetGostAuth(req.Content.User.Metas.User, req.Content.User.Metas.Password)
+		if reqCode != "" && reqCode == tunnelCode {
+			cache2.SetTunnelRegistered(tunnelCode, false) // 健康监控：代理关闭，清除注册态
+		}
+	}
 	success(c)
 }
 

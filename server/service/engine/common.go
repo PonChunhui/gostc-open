@@ -91,6 +91,32 @@ func (m UDPProxyConfig) To() *v1.UDPProxyConfig {
 	return &m.UDPProxyConfig
 }
 
+type TCPMuxProxyConfig struct {
+	v1.TCPMuxProxyConfig
+	Transport ProxyTransport
+}
+
+func (m TCPMuxProxyConfig) To() *v1.TCPMuxProxyConfig {
+	quantity, _ := types.NewBandwidthQuantity(m.Transport.BandwidthLimit)
+	m.TCPMuxProxyConfig.ProxyBaseConfig = v1.ProxyBaseConfig{
+		Name:        m.ProxyBaseConfig.Name,
+		Type:        m.ProxyBaseConfig.Type,
+		Annotations: m.ProxyBaseConfig.Annotations,
+		Transport: v1.ProxyTransport{
+			UseEncryption:        m.Transport.UseEncryption,
+			UseCompression:       m.Transport.UseCompression,
+			BandwidthLimit:       quantity,
+			BandwidthLimitMode:   m.Transport.BandwidthLimitMode,
+			ProxyProtocolVersion: m.Transport.ProxyProtocolVersion,
+		},
+		Metadatas:    m.ProxyBaseConfig.Metadatas,
+		LoadBalancer: m.ProxyBaseConfig.LoadBalancer,
+		HealthCheck:  m.ProxyBaseConfig.HealthCheck,
+		ProxyBackend: m.ProxyBaseConfig.ProxyBackend,
+	}
+	return &m.TCPMuxProxyConfig
+}
+
 type STCPProxyConfig struct {
 	v1.STCPProxyConfig
 	Transport ProxyTransport
@@ -182,6 +208,8 @@ type ForwardConfig struct {
 	BaseCfg   v1.ClientCommonConfig
 	TCP       TCPProxyConfig
 	UDP       UDPProxyConfig
+	TCPMux    TCPMuxProxyConfig
+	PortRange string // 范围端口，如 8000-8010（客户端展开为多个代理）
 	UpdateTag string
 }
 

@@ -43,6 +43,7 @@ func InitPersistence() {
 		Release()
 	}
 	global.Logger.Info("init persistence finish")
+	enableDBResolver()
 	releaseFunc = append(releaseFunc, func() {
 		global.DB.Close()
 	})
@@ -56,6 +57,7 @@ func InitPersistence() {
 		&model.SystemCdk{},
 		&model.SystemConfig{},
 		&model.SystemNotice{},
+		&model.SystemAuditLog{},
 		&model.GostAuth{},
 		&model.GostObs{},
 		&model.GostClient{},
@@ -70,7 +72,18 @@ func InitPersistence() {
 		&model.GostNodeDomain{},
 		&model.GostNodePort{},
 		&model.GostNodeConfig{},
+		&model.GostNodeGroup{},
 		&model.FrpClientCfg{},
+		&model.GostTunnelHealth{},
+		&model.SystemAlertRule{},
+		&model.SystemAlertLog{},
+		&model.GostMetric{},
+		&model.SystemCert{},
+		&model.SystemOrder{},
+		&model.SystemBill{},
+		&model.SystemApiToken{},
+		&model.SystemTunnelTemplate{},
+		&model.SystemClientVersion{},
 	); err != nil {
 		global.Logger.Fatal("init table struct fail", zap.Error(err))
 		Release()

@@ -25,6 +25,7 @@ func main() {
 		model.GostNode{},
 		model.GostNodeBind{},
 		model.GostNodeConfig{},
+		model.GostNodeGroup{},
 		model.GostNodeDomain{},
 		model.GostNodePort{},
 		model.GostObs{},
@@ -36,7 +37,18 @@ func main() {
 		model.SystemUserEmail{},
 		model.SystemCdkBatch{},
 		model.SystemCdk{},
+		model.SystemAuditLog{},
 		model.FrpClientCfg{},
+		model.GostTunnelHealth{},
+		model.SystemAlertRule{},
+		model.SystemAlertLog{},
+		model.GostMetric{},
+		model.SystemCert{},
+		model.SystemOrder{},
+		model.SystemBill{},
+		model.SystemApiToken{},
+		model.SystemTunnelTemplate{},
+		model.SystemClientVersion{},
 	)
 	g.Execute()
 }

@@ -13,7 +13,7 @@ import (
 
 // [SOURCE] https://patorjk.com/software/taag/#p=display&h=0&v=0&f=ANSI%20Shadow&t=GOSTC
 func init() {
-	fmt.Println(`
+	fmt.Print(`
  ██████╗  ██████╗ ███████╗████████╗ ██████╗
 ██╔════╝ ██╔═══██╗██╔════╝╚══██╔══╝██╔════╝
 ██║  ███╗██║   ██║███████╗   ██║   ██║     
@@ -57,6 +57,7 @@ var RootCmd = cobra.Command{
 		bootstrap.InitJwt()
 		bootstrap.InitPersistence()
 		bootstrap.InitMemory()
+		bootstrap.InitPay()
 		bootstrap.InitTodo()
 		bootstrap.InitTask()
 		bootstrap.InitRouter()

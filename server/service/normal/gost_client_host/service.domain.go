@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
+	"server/global"
 	"server/model"
+	"server/pkg/crypto"
 	"server/pkg/utils"
 	"server/repository"
 	"server/repository/cache"
@@ -96,16 +98,21 @@ func (service *service) Domain(userCode string, req DomainReq) error {
 			}
 		}
 
+		encKey, err := crypto.EncryptIfEnabled(req.CustomKey, global.Config.Encrypt.Key)
+		if err != nil {
+			log.Error("加密自定义证书私钥失败", zap.Error(err))
+			return errors.New("操作失败")
+		}
 		host.CustomDomain = req.CustomDomain
 		host.CustomCert = req.CustomCert
-		host.CustomKey = req.CustomKey
+		host.CustomKey = encKey
 		host.CustomForceHttps = req.CustomForceHttps
 		host.CustomDomainMatcher = req.DomainMatcher
 		if err := tx.GostClientHost.Save(host); err != nil {
 			log.Error("保存用户域名解析失败", zap.Error(err))
 			return errors.New("操作失败")
 		}
-		engine.NodeAddDomain(tx, host.NodeCode, host.GetCustomDomain(), host.CustomCert, host.CustomKey, host.CustomForceHttps)
+		engine.NodeAddDomain(tx, host.NodeCode, host.GetCustomDomain(), host.CustomCert, req.CustomKey, host.CustomForceHttps)
 		engine.NodeIngress(tx, host.NodeCode)
 		engine.ClientHostConfig(tx, host.Code)
 		return nil

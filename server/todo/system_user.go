@@ -15,13 +15,14 @@ func systemUser() {
 	}
 	if count == 0 {
 		salt := utils.RandStr(8, utils.AllDict)
+		pwdHash, _ := utils.HashPassword("admin")
 		_ = db.SystemUser.Create(&model.SystemUser{
 			Base: model.Base{
 				Id:   1,
 				Code: "1",
 			},
 			Account:  "admin",
-			Password: utils.MD5AndSalt("admin", salt),
+			Password: pwdHash,
 			Salt:     salt,
 			OtpKey:   "",
 			Admin:    1,

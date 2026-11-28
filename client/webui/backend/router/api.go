@@ -32,4 +32,8 @@ func InitApi(engine *gin.Engine) {
 	api.POST("logger/list", logger.List)
 
 	api.POST("config/query", config.Query)
+	api.POST("config/update/query", config.UpdateQuery)
+	api.POST("config/update/save", config.UpdateSave)
+	api.POST("config/update/check", config.UpdateCheck)
+	api.POST("config/update/apply", config.UpdateApply)
 }

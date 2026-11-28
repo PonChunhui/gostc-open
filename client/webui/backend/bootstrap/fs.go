@@ -14,6 +14,7 @@ func InitFS(basePath string) {
 	} else {
 		_ = os.MkdirAll(basePath, 0755)
 	}
+	global.DataDir = basePath
 	var err error
 	global.ClientFS, err = fs.NewFileStorage(basePath + "/client.json")
 	if err != nil {

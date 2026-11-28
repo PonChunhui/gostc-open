@@ -54,6 +54,33 @@ func (e *ARpcClientEngine) PortCheck(tx *query.Query, ip, port string) error {
 	return nil
 }
 
+// buildHealthCheck 由表单字段构造 frp 健康检查配置；类型为空或间隔≤0 时不启用。
+func buildHealthCheck(hcType, path string, interval, timeout, maxFailed int) v1.HealthCheckConfig {
+	if hcType == "" || interval <= 0 {
+		return v1.HealthCheckConfig{}
+	}
+	return v1.HealthCheckConfig{
+		Type:            hcType,
+		Path:            path,
+		IntervalSeconds: interval,
+		TimeoutSeconds:  timeout,
+		MaxFailed:       maxFailed,
+	}
+}
+
+// forwardBandwidth 计算端口转发的带宽限制：用户显式设置优先，否则回退套餐限速。
+func forwardBandwidth(forward model.GostClientForward) (limit, mode string) {
+	limit = forward.BandwidthLimit
+	if limit == "" {
+		limit = fmt.Sprintf("%dKB", forward.Limiter*128)
+	}
+	mode = forward.BandwidthMode
+	if mode == "" {
+		mode = "client"
+	}
+	return limit, mode
+}
+
 func (e *ARpcClientEngine) HostConfig(tx *query.Query, hostCode string) error {
 	host, err := tx.GostClientHost.Preload(tx.GostClientHost.Node).Where(tx.GostClientHost.Code.Eq(hostCode)).First()
 	if err != nil {
@@ -86,13 +113,19 @@ func (e *ARpcClientEngine) HostConfig(tx *query.Query, hostCode string) error {
 						LocalIP:   host.TargetIp,
 						LocalPort: utils.StrMustInt(host.TargetPort),
 					},
+					LoadBalancer: v1.LoadBalancerConfig{
+						Group:    host.LoadBalancerGroup,
+						GroupKey: host.LoadBalancerGroupKey,
+					},
+					HealthCheck: buildHealthCheck(host.HealthCheckType, host.HealthCheckPath, host.HealthCheckInterval, host.HealthCheckTimeout, host.HealthCheckMaxFailed),
 				},
 				DomainConfig: v1.DomainConfig{
 					CustomDomains: []string{
 						host.Node.GetDomainHost(host.DomainPrefix, host.GetCustomDomain(), cache.GetNodeCustomDomain(host.NodeCode)),
 					},
 				},
-				//HostHeaderRewrite: host.Node.GetDomainHost(host.DomainPrefix, host.GetCustomDomain(), cache.GetNodeCustomDomain(host.NodeCode)),
+				Locations:         host.GetLocations(),
+				HostHeaderRewrite: host.HostHeaderRewrite,
 			},
 			Transport: ProxyTransport{
 				UseEncryption:        host.UseEncryption == 1,
@@ -149,10 +182,12 @@ func (e *ARpcClientEngine) ForwardConfig(tx *query.Query, forwardCode string) er
 		return err
 	}
 
+	bwLimit, bwMode := forwardBandwidth(*forward)
 	var data = ForwardConfig{
 		Key:       forward.Code,
 		UpdateTag: forward.UpdatedAt.Format(time.DateTime) + "#" + forward.Node.UpdatedAt.Format(time.DateTime),
 		BaseCfg:   e.generateServerCommonCfg(forward.PoolCount, forward.Node, *auth),
+		PortRange: forward.PortRange,
 		TCP: TCPProxyConfig{
 			TCPProxyConfig: v1.TCPProxyConfig{
 				ProxyBaseConfig: v1.ProxyBaseConfig{
@@ -166,14 +201,19 @@ func (e *ARpcClientEngine) ForwardConfig(tx *query.Query, forwardCode string) er
 						LocalIP:   forward.TargetIp,
 						LocalPort: utils.StrMustInt(forward.TargetPort),
 					},
+					LoadBalancer: v1.LoadBalancerConfig{
+						Group:    forward.LoadBalancerGroup,
+						GroupKey: forward.LoadBalancerGroupKey,
+					},
+					HealthCheck: buildHealthCheck(forward.HealthCheckType, "", forward.HealthCheckInterval, forward.HealthCheckTimeout, forward.HealthCheckMaxFailed),
 				},
 				RemotePort: utils.StrMustInt(forward.Port),
 			},
 			Transport: ProxyTransport{
 				UseEncryption:      forward.UseEncryption == 1,
 				UseCompression:     forward.UseCompression == 1,
-				BandwidthLimit:     fmt.Sprintf("%dKB", forward.Limiter*128),
-				BandwidthLimitMode: "client",
+				BandwidthLimit:     bwLimit,
+				BandwidthLimitMode: bwMode,
 				ProxyProtocolVersion: func() string {
 					switch forward.ProxyProtocol {
 					case 1:
@@ -199,14 +239,19 @@ func (e *ARpcClientEngine) ForwardConfig(tx *query.Query, forwardCode string) er
 						LocalIP:   forward.TargetIp,
 						LocalPort: utils.StrMustInt(forward.TargetPort),
 					},
+					LoadBalancer: v1.LoadBalancerConfig{
+						Group:    forward.LoadBalancerGroup,
+						GroupKey: forward.LoadBalancerGroupKey,
+					},
+					HealthCheck: buildHealthCheck(forward.HealthCheckType, "", forward.HealthCheckInterval, forward.HealthCheckTimeout, forward.HealthCheckMaxFailed),
 				},
 				RemotePort: utils.StrMustInt(forward.Port),
 			},
 			Transport: ProxyTransport{
 				UseEncryption:      forward.UseEncryption == 1,
 				UseCompression:     forward.UseCompression == 1,
-				BandwidthLimit:     fmt.Sprintf("%dKB", forward.Limiter*128),
-				BandwidthLimitMode: "client",
+				BandwidthLimit:     bwLimit,
+				BandwidthLimitMode: bwMode,
 				ProxyProtocolVersion: func() string {
 					switch forward.ProxyProtocol {
 					case 1:
@@ -219,6 +264,40 @@ func (e *ARpcClientEngine) ForwardConfig(tx *query.Query, forwardCode string) er
 				}(),
 			},
 		},
+		TCPMux: func() TCPMuxProxyConfig {
+			if forward.Multiplexer == "" {
+				return TCPMuxProxyConfig{}
+			}
+			return TCPMuxProxyConfig{
+				TCPMuxProxyConfig: v1.TCPMuxProxyConfig{
+					ProxyBaseConfig: v1.ProxyBaseConfig{
+						Name: forward.Code + "_tcpmux",
+						Type: "tcpmux",
+						Metadatas: map[string]string{
+							"user":     auth.User,
+							"password": auth.Password,
+						},
+						ProxyBackend: v1.ProxyBackend{
+							LocalIP:   forward.TargetIp,
+							LocalPort: utils.StrMustInt(forward.TargetPort),
+						},
+						LoadBalancer: v1.LoadBalancerConfig{
+							Group:    forward.LoadBalancerGroup,
+							GroupKey: forward.LoadBalancerGroupKey,
+						},
+						HealthCheck: buildHealthCheck(forward.HealthCheckType, "", forward.HealthCheckInterval, forward.HealthCheckTimeout, forward.HealthCheckMaxFailed),
+					},
+					Multiplexer:     forward.Multiplexer,
+					RouteByHTTPUser: forward.RouteByHTTPUser,
+				},
+				Transport: ProxyTransport{
+					UseEncryption:      forward.UseEncryption == 1,
+					UseCompression:     forward.UseCompression == 1,
+					BandwidthLimit:     bwLimit,
+					BandwidthLimitMode: bwMode,
+				},
+			}
+		}(),
 	}
 
 	go utils.Retry(func() error {

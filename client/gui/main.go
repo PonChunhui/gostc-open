@@ -11,6 +11,7 @@ import (
 	"gostc-sub/gui/registry"
 	"gostc-sub/gui/window"
 	"gostc-sub/internal/common"
+	"gostc-sub/internal/updater"
 	"gostc-sub/webui/backend/bootstrap"
 	_ "gostc-sub/webui/backend/router"
 	_ "gostc-sub/webui/backend/todo"
@@ -71,9 +72,46 @@ func onReady() {
 		window.ShowSettings()
 	})
 
+	mUpdateCheck := systray.AddMenuItem("检查更新", "检查客户端新版本")
+	mUpdateApply := systray.AddMenuItem("升级到新版本", "下载并安装新版本")
+	mUpdateApply.Hide()
+	mUpdateCheck.Click(func() {
+		info, err := updater.CheckNow()
+		if err != nil {
+			systray.SetTooltip("检查更新失败: " + err.Error())
+			return
+		}
+		if info == nil {
+			systray.SetTooltip("已是最新版本 " + common.VERSION)
+			mUpdateApply.Hide()
+			return
+		}
+		mUpdateApply.SetTitle("升级到 " + info.Version)
+		mUpdateApply.Show()
+		systray.SetTooltip("发现新版本 " + info.Version)
+	})
+	mUpdateApply.Click(func() {
+		if err := updater.ApplyNow(); err != nil {
+			systray.SetTooltip("升级失败: " + err.Error())
+		}
+	})
+
 	mQuit := systray.AddMenuItem("退出", "彻底退出程序")
 	mQuit.Click(func() {
 		systray.Quit()
+	})
+
+	// 后台自更新（notify 模式发现新版本时点亮托盘升级菜单）
+	updater.Start(updater.Options{
+		DataDir:  global.BasePath,
+		PanelURL: common.NewGenerateUrl(true, "gostc.shop").HttpUrl(),
+		Current:  common.VERSION,
+		Notify: func(info updater.Info) {
+			mUpdateApply.SetTitle("升级到 " + info.Version)
+			mUpdateApply.Show()
+			systray.SetTooltip("发现新版本 " + info.Version)
+		},
+		Log: func(msg string) { common.Logger.AddLog("update", msg) },
 	})
 
 	window.ShowMain()

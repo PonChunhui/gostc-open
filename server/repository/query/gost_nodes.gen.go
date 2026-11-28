@@ -61,6 +61,9 @@ func newGostNode(db *gorm.DB, opts ...gen.DOOption) gostNode {
 	_gostNode.LimitTotal = field.NewInt(tableName, "limit_total")
 	_gostNode.LimitKind = field.NewInt(tableName, "limit_kind")
 	_gostNode.TunnelLimit = field.NewInt(tableName, "tunnel_limit")
+	_gostNode.GroupCode = field.NewString(tableName, "group_code")
+	_gostNode.Priority = field.NewInt(tableName, "priority")
+	_gostNode.Weight = field.NewInt(tableName, "weight")
 	_gostNode.Configs = gostNodeHasManyConfigs{
 		db: db.Session(&gorm.Session{}),
 
@@ -122,6 +125,9 @@ type gostNode struct {
 	LimitTotal         field.Int    // 预警流量(GB)
 	LimitKind          field.Int    // 限制方式
 	TunnelLimit        field.Int    // 隧道数量上限，0表示不限制
+	GroupCode          field.String // 节点分组编号
+	Priority           field.Int    // 调度优先级，越小越优先
+	Weight             field.Int    // 调度权重
 	Configs            gostNodeHasManyConfigs
 
 	fieldMap map[string]field.Expr
@@ -172,6 +178,9 @@ func (g *gostNode) updateTableName(table string) *gostNode {
 	g.LimitTotal = field.NewInt(table, "limit_total")
 	g.LimitKind = field.NewInt(table, "limit_kind")
 	g.TunnelLimit = field.NewInt(table, "tunnel_limit")
+	g.GroupCode = field.NewString(table, "group_code")
+	g.Priority = field.NewInt(table, "priority")
+	g.Weight = field.NewInt(table, "weight")
 
 	g.fillFieldMap()
 
@@ -188,7 +197,7 @@ func (g *gostNode) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (g *gostNode) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 34)
+	g.fieldMap = make(map[string]field.Expr, 37)
 	g.fieldMap["id"] = g.Id
 	g.fieldMap["code"] = g.Code
 	g.fieldMap["allow_edit"] = g.AllowEdit
@@ -222,6 +231,9 @@ func (g *gostNode) fillFieldMap() {
 	g.fieldMap["limit_total"] = g.LimitTotal
 	g.fieldMap["limit_kind"] = g.LimitKind
 	g.fieldMap["tunnel_limit"] = g.TunnelLimit
+	g.fieldMap["group_code"] = g.GroupCode
+	g.fieldMap["priority"] = g.Priority
+	g.fieldMap["weight"] = g.Weight
 
 }
 

@@ -65,3 +65,11 @@ export const apiNormalGostClientP2PDelete = (data) => {
         data
     })
 }
+
+export const apiNormalGostClientP2PNatCheck = (data) => {
+    return request.request({
+        url: `${baseUrl}/nat-check`,
+        method: 'POST',
+        data
+    })
+}

@@ -41,3 +41,11 @@ export const apiNormalGostClientDelete = (data) => {
         data
     })
 }
+
+export const apiNormalGostClientBatch = (data) => {
+    return request.request({
+        url: `${baseUrl}/batch`,
+        method: 'POST',
+        data
+    })
+}

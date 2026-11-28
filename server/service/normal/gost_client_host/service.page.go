@@ -2,7 +2,9 @@ package service
 
 import (
 	"gorm.io/gen"
+	"server/global"
 	"server/pkg/bean"
+	"server/pkg/crypto"
 	"server/pkg/jwt"
 	"server/pkg/utils"
 	"server/repository"
@@ -43,9 +45,22 @@ type Item struct {
 	OutputBytes         int64      `json:"outputBytes"`
 	WhiteEnable         int        `json:"whiteEnable"`
 	WhiteList           []string   `json:"whiteList"`
+	BlackEnable         int        `json:"blackEnable"`
+	BlackList           []string   `json:"blackList"`
 	UseEncryption       int        `json:"useEncryption"`
 	UseCompression      int        `json:"useCompression"`
 	PoolCount           int        `json:"poolCount"`
+	Locations           []string   `json:"locations"`
+	HostHeaderRewrite   string     `json:"hostHeaderRewrite"`
+	LoadBalancerGroup   string     `json:"loadBalancerGroup"`
+	LoadBalancerGroupKey string    `json:"loadBalancerGroupKey"`
+	HealthCheckType     string     `json:"healthCheckType"`
+	HealthCheckPath     string     `json:"healthCheckPath"`
+	HealthCheckInterval int        `json:"healthCheckInterval"`
+	HealthCheckTimeout  int        `json:"healthCheckTimeout"`
+	HealthCheckMaxFailed int       `json:"healthCheckMaxFailed"`
+	BackupNodeCode       string    `json:"backupNodeCode"`
+	FailoverEnable       int       `json:"failoverEnable"`
 }
 
 type ItemClient struct {
@@ -107,7 +122,7 @@ func (service *service) Page(claims jwt.Claims, req PageReq) (list []Item, total
 			DomainFull:          host.Node.GetDomainFull(host.DomainPrefix, host.GetCustomDomain(), cache2.GetNodeCustomDomain(host.NodeCode)),
 			CustomDomain:        host.CustomDomain,
 			CustomCert:          host.CustomCert,
-			CustomKey:           host.CustomKey,
+			CustomKey:           crypto.DecryptSafe(host.CustomKey, global.Config.Encrypt.Key),
 			CustomForceHttps:    host.CustomForceHttps,
 			CustomDomainMatcher: host.CustomDomainMatcher,
 			CustomEnable:        utils.TrinaryOperation(cache2.GetNodeCustomDomain(host.NodeCode), 1, 2),
@@ -147,9 +162,22 @@ func (service *service) Page(claims jwt.Claims, req PageReq) (list []Item, total
 			OutputBytes:    obsInfo.OutputBytes,
 			WhiteEnable:    host.WhiteEnable,
 			WhiteList:      host.GetWhiteList(),
+			BlackEnable:    host.BlackEnable,
+			BlackList:      host.GetBlackList(),
 			UseEncryption:  host.UseEncryption,
 			UseCompression: host.UseCompression,
 			PoolCount:      host.PoolCount,
+			Locations:           host.GetLocations(),
+			HostHeaderRewrite:   host.HostHeaderRewrite,
+			LoadBalancerGroup:   host.LoadBalancerGroup,
+			LoadBalancerGroupKey: host.LoadBalancerGroupKey,
+			HealthCheckType:     host.HealthCheckType,
+			HealthCheckPath:     host.HealthCheckPath,
+			HealthCheckInterval: host.HealthCheckInterval,
+			HealthCheckTimeout:  host.HealthCheckTimeout,
+			HealthCheckMaxFailed: host.HealthCheckMaxFailed,
+			BackupNodeCode:       host.BackupNodeCode,
+			FailoverEnable:       host.FailoverEnable,
 		})
 	}
 	return list, total

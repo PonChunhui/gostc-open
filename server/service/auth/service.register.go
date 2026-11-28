@@ -36,6 +36,11 @@ func (service *service) Register(ip string, req RegisterReq) (err error) {
 		}
 
 		salt := utils.RandStr(8, utils.AllDict)
+		pwdHash, err := utils.HashPassword(req.Password)
+		if err != nil {
+			log.Error("生成密码哈希失败", zap.Error(err))
+			return errors.New("注册失败，请联系管理员")
+		}
 		groupCode := ""
 		if cfg.RegisterGroupCode != "" {
 			if group, _ := tx.SystemUserGroup.Where(tx.SystemUserGroup.Code.Eq(cfg.RegisterGroupCode)).First(); group != nil {
@@ -44,7 +49,7 @@ func (service *service) Register(ip string, req RegisterReq) (err error) {
 		}
 		if err = tx.SystemUser.Create(&model.SystemUser{
 			Account:   req.Account,
-			Password:  utils.MD5AndSalt(req.Password, salt),
+			Password:  pwdHash,
 			Salt:      salt,
 			GroupCode: groupCode,
 		}); err != nil {

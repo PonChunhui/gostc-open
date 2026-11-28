@@ -6,6 +6,13 @@ import {ref} from "vue";
 import Drawer from "../../components/Drawer.vue";
 import AppCard from "./AppCard.vue";
 import {localStore} from "../../store/local.js";
+import {getLocale, setLocale} from "../../i18n/index.js";
+import {computed} from "vue";
+
+const currentLocale = computed(() => getLocale())
+const toggleLocale = () => {
+  setLocale(getLocale() === 'zh' ? 'en' : 'zh')
+}
 
 
 const state = ref({
@@ -35,6 +42,11 @@ const logoutFunc = () => {
       {{ appStore().siteConfig.title }}
     </div>
     <div style="flex: 1"></div>
+    <!--  语言切换  -->
+    <n-button size="tiny" quaternary style="color:#F1F1F1;margin:5px" :focusable="false"
+              @click="toggleLocale">
+      {{ currentLocale === 'zh' ? 'EN' : '中文' }}
+    </n-button>
     <!--  夜间模式  -->
     <NIcon style="margin: 5px;user-select: none;cursor: pointer" :size="20"
            @click="localStore().darkTheme = !localStore().darkTheme">

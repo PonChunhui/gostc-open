@@ -21,6 +21,11 @@ import {apiNormalGostObsClientMonth} from "../../../api/normal/gost_obs.js";
 import Obs from "../../../components/Obs.vue";
 import {localStore} from "../../../store/local.js";
 import router from "../../../router/index.js";
+import {useI18n} from "vue-i18n";
+import {useBatch} from "../../../utils/useTunnelEnhance.js";
+
+const {t} = useI18n()
+const {selected: batchSelected, batchLoading, isSelected: batchIsSelected, toggle: batchToggle, run: batchRun} = useBatch('client')
 
 const state = ref({
   table: {
@@ -268,6 +273,22 @@ const generateCmdString = () => {
       </n-space>
     </AppCard>
 
+    <AppCard :show-border="false" v-if="batchSelected.length > 0">
+      <n-space align="center">
+        <span>{{ t('common.selected', {n: batchSelected.length}) }}</span>
+        <n-button size="small" type="info" :loading="batchLoading" :focusable="false"
+                  @click="batchRun('enable', refreshTable)">{{ t('common.batchEnable') }}</n-button>
+        <n-button size="small" type="warning" :loading="batchLoading" :focusable="false"
+                  @click="batchRun('disable', refreshTable)">{{ t('common.batchDisable') }}</n-button>
+        <n-popconfirm @positive-click="batchRun('delete', searchTable)">
+          <template #trigger>
+            <n-button size="small" type="error" :loading="batchLoading" :focusable="false">{{ t('common.batchDelete') }}</n-button>
+          </template>
+          {{ t('common.deleteConfirm') }}
+        </n-popconfirm>
+      </n-space>
+    </AppCard>
+
     <AppCard :show-border="false" :loading="state.table.searchLoading">
       <Empty v-if="state.table.list.length===0" border description="暂无客户端"></Empty>
       <n-grid v-else x-gap="12" y-gap="12" cols="1 520:2 900:3 1400:4">
@@ -279,7 +300,11 @@ const generateCmdString = () => {
                 cursor: 'pointer'}">
             <n-h4 style="margin-bottom: 8px !important;">
               <n-space justify="space-between">
-                <span style="font-weight: bold">{{ row.name }}</span>
+                <n-space align="center" :size="6" :wrap="false">
+                  <n-checkbox :checked="batchIsSelected(row.code)"
+                              :on-update:checked="v => batchToggle(row.code, v)"/>
+                  <span style="font-weight: bold">{{ row.name }}</span>
+                </n-space>
                 <span :style="statusStyle(row)">
                 {{ statusText(row) }}
               </span>

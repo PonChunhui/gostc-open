@@ -7,6 +7,7 @@ import (
 	"gostc-sub/gui/global"
 	"gostc-sub/internal/common"
 	"gostc-sub/internal/service"
+	"gostc-sub/internal/updater"
 	"gostc-sub/pkg/env"
 	"gostc-sub/pkg/signal"
 	"gostc-sub/webui/backend/bootstrap"
@@ -115,10 +116,61 @@ func (p *program) run() {
 	var originCfg string
 	flag.StringVar(&originCfg, "c", "", "load frp cfg file, /root/frps.toml or /root/frpc.toml")
 
+	// 自更新设置（覆盖 data/update.json）
+	var updateMode string
+	flag.StringVar(&updateMode, "update-mode", "", "update mode: off|notify|auto")
+	var updateChannel string
+	flag.StringVar(&updateChannel, "update-channel", "", "update channel: stable|beta")
+	var updateInterval int
+	flag.IntVar(&updateInterval, "update-interval", 0, "update check interval hours")
+	var updateURL string
+	flag.StringVar(&updateURL, "update-url", "", "panel base url override for update")
+
 	flag.Parse()
 
 	address = env.GetEnv("GOSTC_CLIENT_ADDR", address)
 	tlsEnable = env.GetEnv("GOSTC_CLIENT_TLS", tlsEnable)
+	updateMode = env.GetEnv("GOSTC_UPDATE_MODE", updateMode)
+	updateChannel = env.GetEnv("GOSTC_UPDATE_CHANNEL", updateChannel)
+	updateInterval = env.GetEnv("GOSTC_UPDATE_INTERVAL", updateInterval)
+	updateURL = env.GetEnv("GOSTC_UPDATE_URL", updateURL)
+
+	// startUpdater 应用旗标/env 覆盖并启动后台自更新（client/server/ui 模式）。
+	startUpdater := func(dataDir, panelURL, uid string) {
+		s := updater.LoadSettings(dataDir)
+		if updateMode != "" {
+			s.Mode = updateMode
+		}
+		if updateChannel != "" {
+			s.Channel = updateChannel
+		}
+		if updateInterval > 0 {
+			s.IntervalHours = updateInterval
+		}
+		if updateURL != "" {
+			s.PanelURL = updateURL
+		}
+		_ = updater.SaveSettingsFile(dataDir, s)
+		interactive := system_service.Interactive()
+		o := updater.Options{
+			DataDir:     dataDir,
+			PanelURL:    panelURL,
+			UID:         uid,
+			Current:     common.VERSION,
+			ServiceMode: !interactive,
+			Log:         func(msg string) { common.Logger.AddLog("update", msg) },
+		}
+		if !interactive {
+			o.Restart = func() error {
+				svr, err := system_service.New(Program, SvcCfg)
+				if err != nil {
+					return err
+				}
+				return svr.Restart()
+			}
+		}
+		updater.Start(o)
+	}
 
 	common.Logger.Console(console)
 
@@ -153,6 +205,7 @@ func (p *program) run() {
 		bootstrap.InitFS(basePath + "/data")
 		bootstrap.InitTodo()
 		bootstrap.InitTask()
+		startUpdater(basePath+"/data", generate.HttpUrl(), key)
 		bootstrap.InitRouter()
 		if err := bootstrap.StartServer(wAddress); err != nil {
 			bootstrap.Release()
@@ -190,6 +243,7 @@ func (p *program) run() {
 		if err := svc.Start(); err != nil {
 			log.Fatalln("启动失败", err)
 		}
+		startUpdater(global.BasePath+"/data", generate.HttpUrl(), key)
 		p.stopFunc = func() {
 			svc.Stop()
 		}

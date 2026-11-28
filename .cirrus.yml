@@ -17,3 +17,57 @@ macos_dmg_task:
     - cd client && bash gui/packaging/macos/package.sh "${CIRRUS_TAG:-dev}"
   dmg_artifacts:
     path: "client/gui/dist/*.dmg"
+
+# 服务端编译 + 单元测试门禁（平台增强各阶段必测：bcrypt/crypto/探测/告警/Redis 缓存/证书/支付/调度/灰度）。
+server_test_task:
+  name: Server build & unit tests
+  container:
+    image: golang:1.26
+  timeout_in: 20m
+  env:
+    GOPROXY: https://goproxy.cn,direct
+    GOFLAGS: -mod=mod
+  test_script:
+    - cd server
+    - go build ./...
+    - go test ./pkg/... ./repository/cache/... ./service/common/... ./task/... ./controller/public/client_version/...
+
+# 网关 proxy 模块编译 + 通配符匹配回归测试（M6）。
+proxy_test_task:
+  name: Proxy build & match tests
+  container:
+    image: golang:1.26
+  timeout_in: 15m
+  env:
+    GOPROXY: https://goproxy.cn,direct
+    GOFLAGS: -mod=mod
+  test_script:
+    - cd proxy
+    - go build ./...
+    - go test ./pkg/proxy/...
+
+# 客户端模块编译门禁（M5 tcpmux/范围端口镜像结构）。
+client_build_task:
+  name: Client build
+  container:
+    image: golang:1.26
+  timeout_in: 15m
+  env:
+    GOPROXY: https://goproxy.cn,direct
+    GOFLAGS: -mod=mod
+  build_script:
+    - cd client
+    - go build ./...
+
+# 前端构建门禁（P2 前端：健康/告警/曲线/证书/支付/版本/模板/i18n）。
+web_build_task:
+  name: Web build
+  container:
+    image: node:20
+  timeout_in: 20m
+  install_pnpm_script:
+    - npm install -g pnpm@11
+  build_script:
+    - cd web
+    - pnpm install --no-frozen-lockfile
+    - pnpm run build

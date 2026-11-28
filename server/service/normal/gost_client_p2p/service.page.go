@@ -37,6 +37,11 @@ type Item struct {
 	WarnMsg        string     `json:"warnMsg"`
 	CreatedAt      string     `json:"createdAt"`
 	PoolCount      int        `json:"poolCount"`
+	NatType        string     `json:"natType"`
+	RelayBytes     int64      `json:"relayBytes"`
+	KeepTunnelOpen int        `json:"keepTunnelOpen"`
+	BackupNodeCode string     `json:"backupNodeCode"`
+	FailoverEnable int        `json:"failoverEnable"`
 }
 
 type ItemClient struct {
@@ -127,6 +132,11 @@ func (service *service) Page(claims jwt.Claims, req PageReq) (list []Item, total
 			UseEncryption:  p2p.UseEncryption,
 			UseCompression: p2p.UseCompression,
 			PoolCount:      p2p.PoolCount,
+			NatType:        p2p.NatType,
+			RelayBytes:     p2p.RelayBytes,
+			KeepTunnelOpen: p2p.KeepTunnelOpen,
+			BackupNodeCode: p2p.BackupNodeCode,
+			FailoverEnable: p2p.FailoverEnable,
 		})
 	}
 	return list, total

@@ -23,11 +23,16 @@ import (
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
+
+	"github.com/quic-go/quic-go/http3"
 )
 
 type Proxy struct {
 	httpServer      *http.Server
 	httpsServer     *http.Server
+	http3Server     *http3.Server
+	handler         http.Handler
+	tlsConfig       *tls.Config
 	router          atomic.Value
 	routerMutex     *sync.Mutex
 	certs           atomic.Value
@@ -41,6 +46,7 @@ type ProxyConfig struct {
 	HttpPort         int
 	HttpsPort        int
 	AutoCertCacheDir string
+	HTTP3            bool // 启用 HTTPS over QUIC（需 UDP 端口放行，默认关）
 }
 
 type HostRoute struct {
@@ -53,8 +59,9 @@ type HostRoute struct {
 }
 
 type HostRouter struct {
-	level1Routes map[string]*HostRoute // 完全匹配
-	level2Routes map[string]*HostRoute // 模糊匹配
+	level1Routes map[string]*HostRoute // 完全匹配（含 IP 路由）
+	level2Routes map[string]*HostRoute // 模糊匹配（通配符）
+	defaultRoute *HostRoute            // 兜底路由（无匹配时）
 }
 
 func (r *HostRouter) Match(req *http.Request) (*HostRoute, bool) {
@@ -69,10 +76,19 @@ func (r *HostRouter) Match(req *http.Request) (*HostRoute, bool) {
 		return p, true
 	}
 
-	index := strings.IndexByte(host, '.')
-	host = req.Host[index+1:]
-	if p, ok := r.level2Routes[host]; ok {
-		return p, true
+	// 逐级剥离子域进行通配符匹配（使用已剥端口的 host），支持任意深度子域与非标端口
+	for {
+		index := strings.IndexByte(host, '.')
+		if index < 0 {
+			break
+		}
+		host = host[index+1:]
+		if p, ok := r.level2Routes[host]; ok {
+			return p, true
+		}
+	}
+	if r.defaultRoute != nil {
+		return r.defaultRoute, true
 	}
 	return nil, false
 }
@@ -145,6 +161,8 @@ func NewProxy(cfg ProxyConfig) (*Proxy, error) {
 		}
 	})
 
+	proxy.handler = handler
+
 	if cfg.HttpPort > 0 {
 		proxy.httpServer = &http.Server{
 			Addr:    fmt.Sprintf("%s:%d", cfg.Listen, cfg.HttpPort),
@@ -153,32 +171,46 @@ func NewProxy(cfg ProxyConfig) (*Proxy, error) {
 	}
 
 	if cfg.HttpsPort > 0 {
-		proxy.httpsServer = &http.Server{
-			Addr:    fmt.Sprintf("%s:%d", cfg.Listen, cfg.HttpsPort),
-			Handler: handler,
-			TLSConfig: &tls.Config{
-				MinVersion: tls.VersionTLS10,
-				GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-					certMap := proxy.certs.Load().(map[string]*tls.Certificate)
-					if c, ok := certMap[hello.ServerName]; ok {
+		proxy.tlsConfig = &tls.Config{
+			MinVersion: tls.VersionTLS10,
+			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				certMap := proxy.certs.Load().(map[string]*tls.Certificate)
+				if c, ok := certMap[hello.ServerName]; ok {
+					return c, nil
+				}
+
+				sni := hello.ServerName
+				for {
+					index := strings.IndexByte(sni, '.')
+					if index < 0 {
+						break
+					}
+					sni = sni[index+1:]
+					if c, ok := certMap[sni]; ok {
 						return c, nil
 					}
+				}
 
-					index := strings.IndexByte(hello.ServerName, '.')
-					servername := hello.ServerName[index+1:]
-					if c, ok := certMap[servername]; ok {
+				// 仅80端口，自动申请证书
+				if cfg.HttpPort == 80 {
+					if c, err := proxy.autoCertManager.GetCertificate(hello); err == nil && c != nil {
 						return c, nil
 					}
-
-					// 仅80端口，自动申请证书
-					if cfg.HttpPort == 80 {
-						if c, err := proxy.autoCertManager.GetCertificate(hello); err == nil && c != nil {
-							return c, nil
-						}
-					}
-					return proxy.defaultCerts, nil
-				},
+				}
+				return proxy.defaultCerts, nil
 			},
+		}
+		proxy.httpsServer = &http.Server{
+			Addr:      fmt.Sprintf("%s:%d", cfg.Listen, cfg.HttpsPort),
+			Handler:   handler,
+			TLSConfig: proxy.tlsConfig,
+		}
+		if cfg.HTTP3 {
+			proxy.http3Server = &http3.Server{
+				Addr:      fmt.Sprintf("%s:%d", cfg.Listen, cfg.HttpsPort),
+				Handler:   handler,
+				TLSConfig: http3.ConfigureTLSConfig(proxy.tlsConfig),
+			}
 		}
 	}
 	return proxy, nil
@@ -203,6 +235,15 @@ func (p *Proxy) Start() error {
 			}
 		}
 	}()
+	// HTTP/3 (QUIC)
+	go func() {
+		if p.http3Server != nil {
+			log.Println("HTTP/3 proxy listening on", p.http3Server.Addr, "(udp)")
+			if err := p.http3Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Println("HTTP/3 server stopped:", err)
+			}
+		}
+	}()
 	return nil
 }
 
@@ -214,6 +255,39 @@ func (p *Proxy) Stop() {
 	if p.httpsServer != nil {
 		_ = p.httpsServer.Shutdown(ctx)
 	}
+	if p.http3Server != nil {
+		_ = p.http3Server.Close()
+	}
+}
+
+// SetDefaultRoute 设置兜底路由：当请求 Host 无任何匹配时使用（对应配置 default 段）。
+func (p *Proxy) SetDefaultRoute(cfg LoadRouteConfig) {
+	p.routerMutex.Lock()
+	defer p.routerMutex.Unlock()
+	router := p.router.Load().(*HostRouter)
+	if cfg.Target == "" {
+		router.defaultRoute = nil
+		p.router.Store(router)
+		return
+	}
+	target, err := url.Parse(cfg.Target)
+	if err != nil {
+		log.Println("default route", err)
+		return
+	}
+	reversProxy, wsReversProxy, err := newReverseProxy(target, cfg.Rewrite, cfg.Sni, cfg.Origin)
+	if err != nil {
+		log.Println("default route", err)
+		return
+	}
+	router.defaultRoute = &HostRoute{
+		Target:  target,
+		Host:    cfg.Host,
+		AutoTLS: cfg.AutoTLS,
+		Proxy:   reversProxy,
+		WsProxy: wsReversProxy,
+	}
+	p.router.Store(router)
 }
 
 type LoadRouteConfig struct {

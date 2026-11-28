@@ -6,7 +6,8 @@ import {
   apiNormalGostClientP2PMigrate,
   apiNormalGostClientP2PPage,
   apiNormalGostClientP2PRenew,
-  apiNormalGostClientP2PUpdate
+  apiNormalGostClientP2PUpdate,
+  apiNormalGostClientP2PNatCheck
 } from "../../../api/normal/gost_client_p2p.js";
 import AppCard from "../../../layout/components/AppCard.vue";
 import SearchCard from "../../../layout/components/SearchCard.vue";
@@ -66,6 +67,17 @@ const state = ref({
       clientCode: '',
     },
     loading: false,
+  },
+  nat: {
+    open: false,
+    loading: false,
+    data: {
+      stunServers: [],
+      natType: '',
+      directAdvice: '',
+      relayFallback: false,
+      relayBytes: 0,
+    },
   },
 })
 
@@ -212,12 +224,30 @@ const generateCmdString = () => {
   return './gostc' + tls + ' -addr ' + window.location.host + ' -p2p -vts aaaaaa:8080,bbbbbb:8081'
 }
 
+const openNatModal = async (row) => {
+  state.value.nat.open = true
+  state.value.nat.loading = true
+  state.value.nat.data = {stunServers: [], natType: '', directAdvice: '', relayFallback: false, relayBytes: 0}
+  try {
+    const res = await apiNormalGostClientP2PNatCheck({code: row.code, natType: row.natType || ''})
+    state.value.nat.data = res.data || {}
+  } finally {
+    state.value.nat.loading = false
+  }
+}
+
 const operatorOptions = [
   {
     label: '访问密钥',
     key: 'look',
     disabled: false,
     func:openLookFunc,
+  },
+  {
+    label: 'NAT预检',
+    key: 'nat',
+    disabled: false,
+    func: openNatModal,
   },
   {
     label: '转移隧道',
@@ -421,6 +451,38 @@ const operatorRenderLabel = (option)=>{
            :auto-focus="false"
     >
       <n-p>{{ state.look.key }}</n-p>
+    </Modal>
+
+    <Modal title="NAT预检" :show="state.nat.open"
+           confirm-text=""
+           cancel-text="关闭"
+           @on-cancel="state.nat.open = false"
+           mask-close
+           width="480px"
+    >
+      <n-spin :show="state.nat.loading">
+        <n-space vertical :size="12">
+          <n-alert type="info" :show-icon="false">
+            NAT类型决定直连打洞成功率；直连失败时由节点中继保底（中继流量受套餐速率限制）。
+          </n-alert>
+          <div><strong>NAT类型：</strong>
+            <n-tag size="small" :type="state.nat.data.natType==='SymmetricNAT' ? 'warning' : 'success'">
+              {{ state.nat.data.natType || '未知' }}
+            </n-tag>
+          </div>
+          <div><strong>直连建议：</strong>{{ state.nat.data.directAdvice || '-' }}</div>
+          <div><strong>中继保底：</strong>
+            <n-tag size="small" :type="state.nat.data.relayFallback ? 'success' : 'default'">
+              {{ state.nat.data.relayFallback ? '已启用' : '未启用' }}
+            </n-tag>
+          </div>
+          <div><strong>累计中继流量：</strong>{{ state.nat.data.relayBytes || 0 }} 字节</div>
+          <div v-if="state.nat.data.stunServers && state.nat.data.stunServers.length">
+            <strong>STUN服务器：</strong>
+            <n-tag v-for="s in state.nat.data.stunServers" :key="s" size="small" style="margin-right:6px">{{ s }}</n-tag>
+          </div>
+        </n-space>
+      </n-spin>
     </Modal>
 
     <Modal

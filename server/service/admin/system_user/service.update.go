@@ -39,7 +39,12 @@ func (service *service) Update(req UpdateReq) error {
 	}
 	if req.Password != "" {
 		user.Salt = utils.RandStr(8, utils.AllDict)
-		user.Password = utils.MD5AndSalt(req.Password, user.Salt)
+		newHash, err := utils.HashPassword(req.Password)
+		if err != nil {
+			log.Error("生成密码哈希失败", zap.Error(err))
+			return errors.New("操作失败")
+		}
+		user.Password = newHash
 	}
 
 	if err := db.SystemUser.Save(user); err != nil {

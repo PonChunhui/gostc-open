@@ -16,6 +16,7 @@ func main() {
 		"start":     true,
 		"stop":      true,
 		"restart":   true,
+		"update":    true,
 	}
 	var svrArgs []string
 	for _, item := range os.Args[1:] {
@@ -57,6 +58,9 @@ func main() {
 				os.Exit(1)
 			}
 			fmt.Println(os.Args[1] + " service success")
+			return
+		case "update":
+			cmdUpdate(svrArgs)
 			return
 		}
 	}

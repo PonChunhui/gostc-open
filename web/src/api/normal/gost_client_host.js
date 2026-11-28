@@ -81,3 +81,11 @@ export const apiNormalGostClientHostAdmission = (data) => {
         data
     })
 }
+
+export const apiNormalGostClientHostAdvanced = (data) => {
+    return request.request({
+        url: `${baseUrl}/advanced`,
+        method: 'POST',
+        data
+    })
+}

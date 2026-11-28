@@ -96,3 +96,17 @@ func Page(c *gin.Context) {
 	list, total := svr.Page(middleware.GetClaims(c), req)
 	bean.Response.OkData(c, bean.NewPage(list, total))
 }
+
+func NatCheck(c *gin.Context) {
+	var req service.NatCheckReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		bean.Response.Param(c, err)
+		return
+	}
+	resp, err := svr.NatCheck(middleware.GetClaims(c), req)
+	if err != nil {
+		bean.Response.Fail(c, err.Error())
+		return
+	}
+	bean.Response.OkData(c, resp)
+}

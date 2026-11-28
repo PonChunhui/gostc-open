@@ -60,3 +60,17 @@ func Page(c *gin.Context) {
 func List(c *gin.Context) {
 	bean.Response.OkData(c, svr.List(middleware.GetClaims(c)))
 }
+
+func Batch(c *gin.Context) {
+	var req service.BatchReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		bean.Response.Param(c, err)
+		return
+	}
+	resp, err := svr.Batch(middleware.GetClaims(c), req)
+	if err != nil {
+		bean.Response.Fail(c, err.Error())
+		return
+	}
+	bean.Response.OkData(c, resp)
+}

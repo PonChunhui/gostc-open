@@ -8,6 +8,7 @@ import (
 	"server/pkg/logger"
 	"server/pkg/middleware"
 	"server/pkg/rpc_protocol/websocket"
+	routemw "server/router/middleware"
 	"server/router/admin"
 	"server/router/auth"
 	"server/router/normal"
@@ -35,6 +36,9 @@ func init() {
 			return strings.Contains(c.Request.RequestURI, "api/v")
 		}))
 
+		// 审计日志：记录管理/用户侧写操作
+		engine.Use(routemw.Audit())
+
 		_ = InitStatic(engine)
 
 		adminGroup := engine.Group("api/v1/admin")
@@ -49,18 +53,27 @@ func init() {
 		admin.InitGostNode(adminGroup)
 		admin.InitGostNodeBind(adminGroup)
 		admin.InitGostNodeRule(adminGroup)
+		admin.InitGostNodeGroup(adminGroup)
 		admin.InitSystemUser(adminGroup)
 		admin.InitSystemUserGroup(adminGroup)
 		admin.InitSystemCdk(adminGroup)
 		admin.InitSystemNotice(adminGroup)
+		admin.InitSystemAuditLog(adminGroup)
 		admin.InitSystemConfig(adminGroup)
 		admin.InitDashboard(adminGroup)
+		admin.InitClientVersion(adminGroup)
+		admin.InitHealth(adminGroup)
+		admin.InitAlert(adminGroup)
+		admin.InitMetric(adminGroup)
 
 		publicGroup := engine.Group("api/v1/public")
 		public.InitSystemConfig(publicGroup)
 		public.InitFrp(publicGroup)
 		public.InitGost(publicGroup)
 		public.InitDownload(publicGroup)
+		public.InitClientVersion(publicGroup)
+		public.InitPay(publicGroup)
+		public.InitOpenApi(publicGroup)
 
 		authGroup := engine.Group("api/v1/auth")
 		auth.InitAuth(authGroup)
@@ -79,6 +92,13 @@ func init() {
 		normal.InitSystemNotice(normalGroup)
 		normal.InitDashboard(normalGroup)
 		normal.InitFrpClientCfg(normalGroup)
+		normal.InitAlert(normalGroup)
+		normal.InitHealth(normalGroup)
+		normal.InitMetric(normalGroup)
+		normal.InitCert(normalGroup)
+		normal.InitPay(normalGroup)
+		normal.InitApiToken(normalGroup)
+		normal.InitTemplate(normalGroup)
 
 		openGroup := engine.Group("api/v1/open")
 		open.InitAuth(openGroup.Group("auth"))

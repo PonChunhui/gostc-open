@@ -31,7 +31,12 @@ var ResetPasswdCmd = cobra.Command{
 		}
 		newPwd := utils.RandStr(8, utils.AllDict)
 		user.Salt = utils.RandStr(8, utils.AllDict)
-		user.Password = utils.MD5AndSalt(newPwd, user.Salt)
+		newHash, err := utils.HashPassword(newPwd)
+		if err != nil {
+			fmt.Println("hash password error:", err)
+			return
+		}
+		user.Password = newHash
 		if err := global.DB.GetDB().Save(&user).Error; err != nil {
 			fmt.Println("reset password error:", err)
 			return

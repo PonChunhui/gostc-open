@@ -28,16 +28,28 @@ var (
 	GostClientP2P        *gostClientP2P
 	GostClientProxy      *gostClientProxy
 	GostClientTunnel     *gostClientTunnel
+	GostMetric           *gostMetric
 	GostNode             *gostNode
 	GostNodeBind         *gostNodeBind
 	GostNodeConfig       *gostNodeConfig
 	GostNodeDomain       *gostNodeDomain
+	GostNodeGroup        *gostNodeGroup
 	GostNodePort         *gostNodePort
 	GostObs              *gostObs
+	GostTunnelHealth     *gostTunnelHealth
+	SystemAlertLog       *systemAlertLog
+	SystemAlertRule      *systemAlertRule
+	SystemApiToken       *systemApiToken
+	SystemAuditLog       *systemAuditLog
+	SystemBill           *systemBill
 	SystemCdk            *systemCdk
 	SystemCdkBatch       *systemCdkBatch
+	SystemCert           *systemCert
+	SystemClientVersion  *systemClientVersion
 	SystemConfig         *systemConfig
 	SystemNotice         *systemNotice
+	SystemOrder          *systemOrder
+	SystemTunnelTemplate *systemTunnelTemplate
 	SystemUser           *systemUser
 	SystemUserCheckin    *systemUserCheckin
 	SystemUserEmail      *systemUserEmail
@@ -57,16 +69,28 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	GostClientP2P = &Q.GostClientP2P
 	GostClientProxy = &Q.GostClientProxy
 	GostClientTunnel = &Q.GostClientTunnel
+	GostMetric = &Q.GostMetric
 	GostNode = &Q.GostNode
 	GostNodeBind = &Q.GostNodeBind
 	GostNodeConfig = &Q.GostNodeConfig
 	GostNodeDomain = &Q.GostNodeDomain
+	GostNodeGroup = &Q.GostNodeGroup
 	GostNodePort = &Q.GostNodePort
 	GostObs = &Q.GostObs
+	GostTunnelHealth = &Q.GostTunnelHealth
+	SystemAlertLog = &Q.SystemAlertLog
+	SystemAlertRule = &Q.SystemAlertRule
+	SystemApiToken = &Q.SystemApiToken
+	SystemAuditLog = &Q.SystemAuditLog
+	SystemBill = &Q.SystemBill
 	SystemCdk = &Q.SystemCdk
 	SystemCdkBatch = &Q.SystemCdkBatch
+	SystemCert = &Q.SystemCert
+	SystemClientVersion = &Q.SystemClientVersion
 	SystemConfig = &Q.SystemConfig
 	SystemNotice = &Q.SystemNotice
+	SystemOrder = &Q.SystemOrder
+	SystemTunnelTemplate = &Q.SystemTunnelTemplate
 	SystemUser = &Q.SystemUser
 	SystemUserCheckin = &Q.SystemUserCheckin
 	SystemUserEmail = &Q.SystemUserEmail
@@ -87,16 +111,28 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		GostClientP2P:        newGostClientP2P(db, opts...),
 		GostClientProxy:      newGostClientProxy(db, opts...),
 		GostClientTunnel:     newGostClientTunnel(db, opts...),
+		GostMetric:           newGostMetric(db, opts...),
 		GostNode:             newGostNode(db, opts...),
 		GostNodeBind:         newGostNodeBind(db, opts...),
 		GostNodeConfig:       newGostNodeConfig(db, opts...),
 		GostNodeDomain:       newGostNodeDomain(db, opts...),
+		GostNodeGroup:        newGostNodeGroup(db, opts...),
 		GostNodePort:         newGostNodePort(db, opts...),
 		GostObs:              newGostObs(db, opts...),
+		GostTunnelHealth:     newGostTunnelHealth(db, opts...),
+		SystemAlertLog:       newSystemAlertLog(db, opts...),
+		SystemAlertRule:      newSystemAlertRule(db, opts...),
+		SystemApiToken:       newSystemApiToken(db, opts...),
+		SystemAuditLog:       newSystemAuditLog(db, opts...),
+		SystemBill:           newSystemBill(db, opts...),
 		SystemCdk:            newSystemCdk(db, opts...),
 		SystemCdkBatch:       newSystemCdkBatch(db, opts...),
+		SystemCert:           newSystemCert(db, opts...),
+		SystemClientVersion:  newSystemClientVersion(db, opts...),
 		SystemConfig:         newSystemConfig(db, opts...),
 		SystemNotice:         newSystemNotice(db, opts...),
+		SystemOrder:          newSystemOrder(db, opts...),
+		SystemTunnelTemplate: newSystemTunnelTemplate(db, opts...),
 		SystemUser:           newSystemUser(db, opts...),
 		SystemUserCheckin:    newSystemUserCheckin(db, opts...),
 		SystemUserEmail:      newSystemUserEmail(db, opts...),
@@ -118,16 +154,28 @@ type Query struct {
 	GostClientP2P        gostClientP2P
 	GostClientProxy      gostClientProxy
 	GostClientTunnel     gostClientTunnel
+	GostMetric           gostMetric
 	GostNode             gostNode
 	GostNodeBind         gostNodeBind
 	GostNodeConfig       gostNodeConfig
 	GostNodeDomain       gostNodeDomain
+	GostNodeGroup        gostNodeGroup
 	GostNodePort         gostNodePort
 	GostObs              gostObs
+	GostTunnelHealth     gostTunnelHealth
+	SystemAlertLog       systemAlertLog
+	SystemAlertRule      systemAlertRule
+	SystemApiToken       systemApiToken
+	SystemAuditLog       systemAuditLog
+	SystemBill           systemBill
 	SystemCdk            systemCdk
 	SystemCdkBatch       systemCdkBatch
+	SystemCert           systemCert
+	SystemClientVersion  systemClientVersion
 	SystemConfig         systemConfig
 	SystemNotice         systemNotice
+	SystemOrder          systemOrder
+	SystemTunnelTemplate systemTunnelTemplate
 	SystemUser           systemUser
 	SystemUserCheckin    systemUserCheckin
 	SystemUserEmail      systemUserEmail
@@ -150,16 +198,28 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		GostClientP2P:        q.GostClientP2P.clone(db),
 		GostClientProxy:      q.GostClientProxy.clone(db),
 		GostClientTunnel:     q.GostClientTunnel.clone(db),
+		GostMetric:           q.GostMetric.clone(db),
 		GostNode:             q.GostNode.clone(db),
 		GostNodeBind:         q.GostNodeBind.clone(db),
 		GostNodeConfig:       q.GostNodeConfig.clone(db),
 		GostNodeDomain:       q.GostNodeDomain.clone(db),
+		GostNodeGroup:        q.GostNodeGroup.clone(db),
 		GostNodePort:         q.GostNodePort.clone(db),
 		GostObs:              q.GostObs.clone(db),
+		GostTunnelHealth:     q.GostTunnelHealth.clone(db),
+		SystemAlertLog:       q.SystemAlertLog.clone(db),
+		SystemAlertRule:      q.SystemAlertRule.clone(db),
+		SystemApiToken:       q.SystemApiToken.clone(db),
+		SystemAuditLog:       q.SystemAuditLog.clone(db),
+		SystemBill:           q.SystemBill.clone(db),
 		SystemCdk:            q.SystemCdk.clone(db),
 		SystemCdkBatch:       q.SystemCdkBatch.clone(db),
+		SystemCert:           q.SystemCert.clone(db),
+		SystemClientVersion:  q.SystemClientVersion.clone(db),
 		SystemConfig:         q.SystemConfig.clone(db),
 		SystemNotice:         q.SystemNotice.clone(db),
+		SystemOrder:          q.SystemOrder.clone(db),
+		SystemTunnelTemplate: q.SystemTunnelTemplate.clone(db),
 		SystemUser:           q.SystemUser.clone(db),
 		SystemUserCheckin:    q.SystemUserCheckin.clone(db),
 		SystemUserEmail:      q.SystemUserEmail.clone(db),
@@ -189,16 +249,28 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		GostClientP2P:        q.GostClientP2P.replaceDB(db),
 		GostClientProxy:      q.GostClientProxy.replaceDB(db),
 		GostClientTunnel:     q.GostClientTunnel.replaceDB(db),
+		GostMetric:           q.GostMetric.replaceDB(db),
 		GostNode:             q.GostNode.replaceDB(db),
 		GostNodeBind:         q.GostNodeBind.replaceDB(db),
 		GostNodeConfig:       q.GostNodeConfig.replaceDB(db),
 		GostNodeDomain:       q.GostNodeDomain.replaceDB(db),
+		GostNodeGroup:        q.GostNodeGroup.replaceDB(db),
 		GostNodePort:         q.GostNodePort.replaceDB(db),
 		GostObs:              q.GostObs.replaceDB(db),
+		GostTunnelHealth:     q.GostTunnelHealth.replaceDB(db),
+		SystemAlertLog:       q.SystemAlertLog.replaceDB(db),
+		SystemAlertRule:      q.SystemAlertRule.replaceDB(db),
+		SystemApiToken:       q.SystemApiToken.replaceDB(db),
+		SystemAuditLog:       q.SystemAuditLog.replaceDB(db),
+		SystemBill:           q.SystemBill.replaceDB(db),
 		SystemCdk:            q.SystemCdk.replaceDB(db),
 		SystemCdkBatch:       q.SystemCdkBatch.replaceDB(db),
+		SystemCert:           q.SystemCert.replaceDB(db),
+		SystemClientVersion:  q.SystemClientVersion.replaceDB(db),
 		SystemConfig:         q.SystemConfig.replaceDB(db),
 		SystemNotice:         q.SystemNotice.replaceDB(db),
+		SystemOrder:          q.SystemOrder.replaceDB(db),
+		SystemTunnelTemplate: q.SystemTunnelTemplate.replaceDB(db),
 		SystemUser:           q.SystemUser.replaceDB(db),
 		SystemUserCheckin:    q.SystemUserCheckin.replaceDB(db),
 		SystemUserEmail:      q.SystemUserEmail.replaceDB(db),
@@ -218,16 +290,28 @@ type queryCtx struct {
 	GostClientP2P        IGostClientP2PDo
 	GostClientProxy      IGostClientProxyDo
 	GostClientTunnel     IGostClientTunnelDo
+	GostMetric           IGostMetricDo
 	GostNode             IGostNodeDo
 	GostNodeBind         IGostNodeBindDo
 	GostNodeConfig       IGostNodeConfigDo
 	GostNodeDomain       IGostNodeDomainDo
+	GostNodeGroup        IGostNodeGroupDo
 	GostNodePort         IGostNodePortDo
 	GostObs              IGostObsDo
+	GostTunnelHealth     IGostTunnelHealthDo
+	SystemAlertLog       ISystemAlertLogDo
+	SystemAlertRule      ISystemAlertRuleDo
+	SystemApiToken       ISystemApiTokenDo
+	SystemAuditLog       ISystemAuditLogDo
+	SystemBill           ISystemBillDo
 	SystemCdk            ISystemCdkDo
 	SystemCdkBatch       ISystemCdkBatchDo
+	SystemCert           ISystemCertDo
+	SystemClientVersion  ISystemClientVersionDo
 	SystemConfig         ISystemConfigDo
 	SystemNotice         ISystemNoticeDo
+	SystemOrder          ISystemOrderDo
+	SystemTunnelTemplate ISystemTunnelTemplateDo
 	SystemUser           ISystemUserDo
 	SystemUserCheckin    ISystemUserCheckinDo
 	SystemUserEmail      ISystemUserEmailDo
@@ -247,16 +331,28 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		GostClientP2P:        q.GostClientP2P.WithContext(ctx),
 		GostClientProxy:      q.GostClientProxy.WithContext(ctx),
 		GostClientTunnel:     q.GostClientTunnel.WithContext(ctx),
+		GostMetric:           q.GostMetric.WithContext(ctx),
 		GostNode:             q.GostNode.WithContext(ctx),
 		GostNodeBind:         q.GostNodeBind.WithContext(ctx),
 		GostNodeConfig:       q.GostNodeConfig.WithContext(ctx),
 		GostNodeDomain:       q.GostNodeDomain.WithContext(ctx),
+		GostNodeGroup:        q.GostNodeGroup.WithContext(ctx),
 		GostNodePort:         q.GostNodePort.WithContext(ctx),
 		GostObs:              q.GostObs.WithContext(ctx),
+		GostTunnelHealth:     q.GostTunnelHealth.WithContext(ctx),
+		SystemAlertLog:       q.SystemAlertLog.WithContext(ctx),
+		SystemAlertRule:      q.SystemAlertRule.WithContext(ctx),
+		SystemApiToken:       q.SystemApiToken.WithContext(ctx),
+		SystemAuditLog:       q.SystemAuditLog.WithContext(ctx),
+		SystemBill:           q.SystemBill.WithContext(ctx),
 		SystemCdk:            q.SystemCdk.WithContext(ctx),
 		SystemCdkBatch:       q.SystemCdkBatch.WithContext(ctx),
+		SystemCert:           q.SystemCert.WithContext(ctx),
+		SystemClientVersion:  q.SystemClientVersion.WithContext(ctx),
 		SystemConfig:         q.SystemConfig.WithContext(ctx),
 		SystemNotice:         q.SystemNotice.WithContext(ctx),
+		SystemOrder:          q.SystemOrder.WithContext(ctx),
+		SystemTunnelTemplate: q.SystemTunnelTemplate.WithContext(ctx),
 		SystemUser:           q.SystemUser.WithContext(ctx),
 		SystemUserCheckin:    q.SystemUserCheckin.WithContext(ctx),
 		SystemUserEmail:      q.SystemUserEmail.WithContext(ctx),

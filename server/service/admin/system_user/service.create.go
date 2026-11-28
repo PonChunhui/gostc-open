@@ -26,9 +26,14 @@ func (service *service) Create(req CreateReq) error {
 	}
 
 	salt := utils.RandStr(8, utils.AllDict)
+	pwdHash, err := utils.HashPassword(req.Password)
+	if err != nil {
+		log.Error("生成密码哈希失败", zap.Error(err))
+		return errors.New("操作失败")
+	}
 	if err := db.SystemUser.Create(&model.SystemUser{
 		Account:   req.Account,
-		Password:  utils.MD5AndSalt(req.Password, salt),
+		Password:  pwdHash,
 		Salt:      salt,
 		Admin:     req.Admin,
 		Amount:    req.Amount,

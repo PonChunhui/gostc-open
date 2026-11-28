@@ -41,6 +41,8 @@ func newGostClientForward(db *gorm.DB, opts ...gen.DOOption) gostClientForward {
 	_gostClientForward.Port = field.NewString(tableName, "port")
 	_gostClientForward.ProxyProtocol = field.NewInt(tableName, "proxy_protocol")
 	_gostClientForward.NodeCode = field.NewString(tableName, "node_code")
+	_gostClientForward.BackupNodeCode = field.NewString(tableName, "backup_node_code")
+	_gostClientForward.FailoverEnable = field.NewInt(tableName, "failover_enable")
 	_gostClientForward.ClientCode = field.NewString(tableName, "client_code")
 	_gostClientForward.UserCode = field.NewString(tableName, "user_code")
 	_gostClientForward.Enable = field.NewInt(tableName, "enable")
@@ -53,8 +55,21 @@ func newGostClientForward(db *gorm.DB, opts ...gen.DOOption) gostClientForward {
 	_gostClientForward.UseEncryption = field.NewInt(tableName, "use_encryption")
 	_gostClientForward.UseCompression = field.NewInt(tableName, "use_compression")
 	_gostClientForward.PoolCount = field.NewInt(tableName, "pool_count")
+	_gostClientForward.Multiplexer = field.NewString(tableName, "multiplexer")
+	_gostClientForward.RouteByHTTPUser = field.NewString(tableName, "route_by_http_user")
+	_gostClientForward.BandwidthLimit = field.NewString(tableName, "bandwidth_limit")
+	_gostClientForward.BandwidthMode = field.NewString(tableName, "bandwidth_mode")
+	_gostClientForward.PortRange = field.NewString(tableName, "port_range")
+	_gostClientForward.LoadBalancerGroup = field.NewString(tableName, "load_balancer_group")
+	_gostClientForward.LoadBalancerGroupKey = field.NewString(tableName, "load_balancer_group_key")
+	_gostClientForward.HealthCheckType = field.NewString(tableName, "health_check_type")
+	_gostClientForward.HealthCheckInterval = field.NewInt(tableName, "health_check_interval")
+	_gostClientForward.HealthCheckTimeout = field.NewInt(tableName, "health_check_timeout")
+	_gostClientForward.HealthCheckMaxFailed = field.NewInt(tableName, "health_check_max_failed")
 	_gostClientForward.WhiteEnable = field.NewInt(tableName, "white_enable")
 	_gostClientForward.WhiteList = field.NewString(tableName, "white_list")
+	_gostClientForward.BlackEnable = field.NewInt(tableName, "black_enable")
+	_gostClientForward.BlackList = field.NewString(tableName, "black_list")
 	_gostClientForward.ChargingType = field.NewInt(tableName, "charging_type")
 	_gostClientForward.Cycle = field.NewInt(tableName, "cycle")
 	_gostClientForward.Amount = field.NewField(tableName, "amount")
@@ -115,43 +130,58 @@ func newGostClientForward(db *gorm.DB, opts ...gen.DOOption) gostClientForward {
 type gostClientForward struct {
 	gostClientForwardDo
 
-	ALL            field.Asterisk
-	Id             field.Int
-	Code           field.String // code
-	AllowEdit      field.Int    // 是否可编辑
-	AllowDel       field.Int    // 是否可删除
-	Version        field.Int64
-	CreatedAt      field.Time
-	UpdatedAt      field.Time
-	Name           field.String // 名称
-	TargetIp       field.String // 内网IP
-	TargetPort     field.String // 内网端口
-	Port           field.String // 访问端口
-	ProxyProtocol  field.Int    // 代理协议
-	NodeCode       field.String // 节点编号
-	ClientCode     field.String // 客户端编号
-	UserCode       field.String // 用户编号
-	Enable         field.Int    // 启用状态
-	Status         field.Int    // 状态
-	BanReason      field.String // 封禁原因
-	MatcherEnable  field.Int    // 是否开启匹配规则
-	Matcher        field.String // 匹配规则
-	TcpMatcher     field.String // 规则匹配
-	SSHMatcher     field.String // 规则匹配
-	UseEncryption  field.Int    // 加密
-	UseCompression field.Int    // 压缩
-	PoolCount      field.Int    // 复用连接数量
-	WhiteEnable    field.Int    // 是否启用准入控制
-	WhiteList      field.String // 白名单
-	ChargingType   field.Int    // 计费方式
-	Cycle          field.Int    // 计费周期(天)
-	Amount         field.Field  // 费用
-	Limiter        field.Int    // 速度速率限制
-	RLimiter       field.Int    // 并发数量限制
-	CLimiter       field.Int    // 连接数量限制
-	LimitTotal     field.Int    // 流量包(GB),0无限制
-	ExpAt          field.Int64  // 套餐到期时间
-	Node           gostClientForwardBelongsToNode
+	ALL                  field.Asterisk
+	Id                   field.Int
+	Code                 field.String // code
+	AllowEdit            field.Int    // 是否可编辑
+	AllowDel             field.Int    // 是否可删除
+	Version              field.Int64
+	CreatedAt            field.Time
+	UpdatedAt            field.Time
+	Name                 field.String // 名称
+	TargetIp             field.String // 内网IP
+	TargetPort           field.String // 内网端口
+	Port                 field.String // 访问端口
+	ProxyProtocol        field.Int    // 代理协议
+	NodeCode             field.String // 节点编号
+	BackupNodeCode       field.String // 备用节点编号
+	FailoverEnable       field.Int    // 故障转移
+	ClientCode           field.String // 客户端编号
+	UserCode             field.String // 用户编号
+	Enable               field.Int    // 启用状态
+	Status               field.Int    // 状态
+	BanReason            field.String // 封禁原因
+	MatcherEnable        field.Int    // 是否开启匹配规则
+	Matcher              field.String // 匹配规则
+	TcpMatcher           field.String // 规则匹配
+	SSHMatcher           field.String // 规则匹配
+	UseEncryption        field.Int    // 加密
+	UseCompression       field.Int    // 压缩
+	PoolCount            field.Int    // 复用连接数量
+	Multiplexer          field.String // 复用器httpconnect/tcpmux
+	RouteByHTTPUser      field.String // 按HTTP用户路由
+	BandwidthLimit       field.String // 带宽限制如1MB(空=套餐限速)
+	BandwidthMode        field.String // 带宽限制端client/server
+	PortRange            field.String // 范围端口如8000-8010
+	LoadBalancerGroup    field.String // 负载均衡组
+	LoadBalancerGroupKey field.String // 负载均衡组密钥
+	HealthCheckType      field.String // 健康检查类型tcp/http
+	HealthCheckInterval  field.Int    // 健康检查间隔秒
+	HealthCheckTimeout   field.Int    // 健康检查超时秒
+	HealthCheckMaxFailed field.Int    // 健康检查最大失败次数
+	WhiteEnable          field.Int    // 是否启用准入控制
+	WhiteList            field.String // 白名单
+	BlackEnable          field.Int    // 是否启用黑名单
+	BlackList            field.String // 黑名单
+	ChargingType         field.Int    // 计费方式
+	Cycle                field.Int    // 计费周期(天)
+	Amount               field.Field  // 费用
+	Limiter              field.Int    // 速度速率限制
+	RLimiter             field.Int    // 并发数量限制
+	CLimiter             field.Int    // 连接数量限制
+	LimitTotal           field.Int    // 流量包(GB),0无限制
+	ExpAt                field.Int64  // 套餐到期时间
+	Node                 gostClientForwardBelongsToNode
 
 	Client gostClientForwardBelongsToClient
 
@@ -185,6 +215,8 @@ func (g *gostClientForward) updateTableName(table string) *gostClientForward {
 	g.Port = field.NewString(table, "port")
 	g.ProxyProtocol = field.NewInt(table, "proxy_protocol")
 	g.NodeCode = field.NewString(table, "node_code")
+	g.BackupNodeCode = field.NewString(table, "backup_node_code")
+	g.FailoverEnable = field.NewInt(table, "failover_enable")
 	g.ClientCode = field.NewString(table, "client_code")
 	g.UserCode = field.NewString(table, "user_code")
 	g.Enable = field.NewInt(table, "enable")
@@ -197,8 +229,21 @@ func (g *gostClientForward) updateTableName(table string) *gostClientForward {
 	g.UseEncryption = field.NewInt(table, "use_encryption")
 	g.UseCompression = field.NewInt(table, "use_compression")
 	g.PoolCount = field.NewInt(table, "pool_count")
+	g.Multiplexer = field.NewString(table, "multiplexer")
+	g.RouteByHTTPUser = field.NewString(table, "route_by_http_user")
+	g.BandwidthLimit = field.NewString(table, "bandwidth_limit")
+	g.BandwidthMode = field.NewString(table, "bandwidth_mode")
+	g.PortRange = field.NewString(table, "port_range")
+	g.LoadBalancerGroup = field.NewString(table, "load_balancer_group")
+	g.LoadBalancerGroupKey = field.NewString(table, "load_balancer_group_key")
+	g.HealthCheckType = field.NewString(table, "health_check_type")
+	g.HealthCheckInterval = field.NewInt(table, "health_check_interval")
+	g.HealthCheckTimeout = field.NewInt(table, "health_check_timeout")
+	g.HealthCheckMaxFailed = field.NewInt(table, "health_check_max_failed")
 	g.WhiteEnable = field.NewInt(table, "white_enable")
 	g.WhiteList = field.NewString(table, "white_list")
+	g.BlackEnable = field.NewInt(table, "black_enable")
+	g.BlackList = field.NewString(table, "black_list")
 	g.ChargingType = field.NewInt(table, "charging_type")
 	g.Cycle = field.NewInt(table, "cycle")
 	g.Amount = field.NewField(table, "amount")
@@ -223,7 +268,7 @@ func (g *gostClientForward) GetFieldByName(fieldName string) (field.OrderExpr, b
 }
 
 func (g *gostClientForward) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 38)
+	g.fieldMap = make(map[string]field.Expr, 53)
 	g.fieldMap["id"] = g.Id
 	g.fieldMap["code"] = g.Code
 	g.fieldMap["allow_edit"] = g.AllowEdit
@@ -237,6 +282,8 @@ func (g *gostClientForward) fillFieldMap() {
 	g.fieldMap["port"] = g.Port
 	g.fieldMap["proxy_protocol"] = g.ProxyProtocol
 	g.fieldMap["node_code"] = g.NodeCode
+	g.fieldMap["backup_node_code"] = g.BackupNodeCode
+	g.fieldMap["failover_enable"] = g.FailoverEnable
 	g.fieldMap["client_code"] = g.ClientCode
 	g.fieldMap["user_code"] = g.UserCode
 	g.fieldMap["enable"] = g.Enable
@@ -249,8 +296,21 @@ func (g *gostClientForward) fillFieldMap() {
 	g.fieldMap["use_encryption"] = g.UseEncryption
 	g.fieldMap["use_compression"] = g.UseCompression
 	g.fieldMap["pool_count"] = g.PoolCount
+	g.fieldMap["multiplexer"] = g.Multiplexer
+	g.fieldMap["route_by_http_user"] = g.RouteByHTTPUser
+	g.fieldMap["bandwidth_limit"] = g.BandwidthLimit
+	g.fieldMap["bandwidth_mode"] = g.BandwidthMode
+	g.fieldMap["port_range"] = g.PortRange
+	g.fieldMap["load_balancer_group"] = g.LoadBalancerGroup
+	g.fieldMap["load_balancer_group_key"] = g.LoadBalancerGroupKey
+	g.fieldMap["health_check_type"] = g.HealthCheckType
+	g.fieldMap["health_check_interval"] = g.HealthCheckInterval
+	g.fieldMap["health_check_timeout"] = g.HealthCheckTimeout
+	g.fieldMap["health_check_max_failed"] = g.HealthCheckMaxFailed
 	g.fieldMap["white_enable"] = g.WhiteEnable
 	g.fieldMap["white_list"] = g.WhiteList
+	g.fieldMap["black_enable"] = g.BlackEnable
+	g.fieldMap["black_list"] = g.BlackList
 	g.fieldMap["charging_type"] = g.ChargingType
 	g.fieldMap["cycle"] = g.Cycle
 	g.fieldMap["amount"] = g.Amount

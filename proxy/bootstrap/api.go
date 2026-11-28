@@ -94,11 +94,25 @@ func Domain(c *gin.Context) {
 	if global.Config.Domains == nil {
 		global.Config.Domains = make(map[string]configs.DomainConfig)
 	}
+	// 证书续期推送可能仅带 cert/key 而不带 target：保留已有路由配置，避免清空转发目标。
+	existing, hasExisting := global.Config.Domains[req.Domain]
+	target := req.Target
+	forceHttps := req.ForceHttps == 1
+	if hasExisting {
+		if target == "" {
+			target = existing.Target
+			forceHttps = existing.ForceHttps
+		}
+		if certFile == "" {
+			certFile = existing.Cert
+			keyFile = existing.Key
+		}
+	}
 	global.Config.Domains[req.Domain] = configs.DomainConfig{
-		Target:       req.Target,
+		Target:       target,
 		Cert:         certFile,
 		Key:          keyFile,
-		ForceHttps:   req.ForceHttps == 1,
+		ForceHttps:   forceHttps,
 		DisableHttps: false,
 	}
 	marshal, err := yaml.Marshal(global.Config)

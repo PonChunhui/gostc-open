@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"server/pkg/bean"
 	"server/pkg/jwt"
+	"server/service/common/apitoken"
 	"server/service/common/ban"
 )
 
@@ -17,9 +18,14 @@ func Auth(tool *jwt.Tool) gin.HandlerFunc {
 		}
 		claims, err := tool.ValidToken(token)
 		if err != nil {
-			bean.Response.AuthInvalid(c)
-			c.Abort()
-			return
+			// JWT 无效时尝试长期 API Token（OpenAPI/SDK 鉴权）
+			if apiClaims, ok := apitoken.Resolve(token); ok {
+				claims = apiClaims
+			} else {
+				bean.Response.AuthInvalid(c)
+				c.Abort()
+				return
+			}
 		}
 		if ban.UserBanned(claims.Code) {
 			bean.Response.AuthBanned(c)

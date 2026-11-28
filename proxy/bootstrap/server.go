@@ -27,6 +27,7 @@ func InitServer() {
 		HttpPort:         utils.StrMustInt(httpPort),
 		HttpsPort:        utils.StrMustInt(httpsPort),
 		AutoCertCacheDir: global.BASE_PATH + "/data/autocert",
+		HTTP3:            global.Config.HTTP3,
 	})
 	if err != nil {
 		Release()

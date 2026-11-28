@@ -53,3 +53,8 @@ debug.log
 /client/gostc_macos_arm.dmg
 /web/dist.zip
 bili_cookies.txt
+
+# 本地 SSH 辅助（含凭据）/ pnpm _store / 构建日志（不入库）
+/.tmp_ssh
+/.pnpm-store
+*.log

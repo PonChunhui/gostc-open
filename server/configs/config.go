@@ -12,4 +12,11 @@ type Config struct {
 	DbType    string        `yaml:"db-type"`
 	Sqlite    Sqlite        `yaml:"sqlite"`
 	Mysql     Mysql         `yaml:"mysql"`
+	Cache     Cache         `yaml:"cache"`
+	Encrypt   Encrypt       `yaml:"encrypt"`
+	Health    Health        `yaml:"health"`
+	Metric    Metric        `yaml:"metric"`
+	ACME      ACME          `yaml:"acme"`
+	DBResolver DBResolver   `yaml:"db-resolver"`
+	Pay       Pay           `yaml:"pay"`
 }

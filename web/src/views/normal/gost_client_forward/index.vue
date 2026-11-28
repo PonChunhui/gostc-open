@@ -8,7 +8,8 @@ import {
   apiNormalGostClientForwardMigrate,
   apiNormalGostClientForwardPage,
   apiNormalGostClientForwardRenew,
-  apiNormalGostClientForwardUpdate
+  apiNormalGostClientForwardUpdate,
+  apiNormalGostClientForwardAdvanced
 } from "../../../api/normal/gost_client_forward.js";
 import AppCard from "../../../layout/components/AppCard.vue";
 import SearchCard from "../../../layout/components/SearchCard.vue";
@@ -28,6 +29,12 @@ import moment from "moment";
 import Obs from "../../../components/Obs.vue";
 import {localStore} from "../../../store/local.js";
 import {apiNormalGostClientList} from "../../../api/normal/gost_client.js";
+import {useI18n} from "vue-i18n";
+import {useHealth, useBatch} from "../../../utils/useTunnelEnhance.js";
+
+const {t} = useI18n()
+const {loadHealth, healthTag} = useHealth()
+const {selected: batchSelected, batchLoading, isSelected: batchIsSelected, toggle: batchToggle, run: batchRun} = useBatch('forward')
 
 const state = ref({
   table: {
@@ -104,6 +111,21 @@ const state = ref({
     },
     loading: false,
   },
+  advanced: {
+    multiplexer: '',
+    routeByHTTPUser: '',
+    bandwidthLimit: '',
+    bandwidthMode: '',
+    portRange: '',
+    loadBalancerGroup: '',
+    loadBalancerGroupKey: '',
+    healthCheckType: '',
+    healthCheckInterval: 0,
+    healthCheckTimeout: 0,
+    healthCheckMaxFailed: 0,
+    backupNodeCode: '',
+    failoverEnable: 0,
+  },
 })
 
 const refreshTable = () => {
@@ -132,6 +154,21 @@ const openCreate = () => {
 
 const openUpdate = (row) => {
   state.value.update.data = JSON.parse(JSON.stringify(row))
+  state.value.advanced = {
+    multiplexer: row.multiplexer || '',
+    routeByHTTPUser: row.routeByHTTPUser || '',
+    bandwidthLimit: row.bandwidthLimit || '',
+    bandwidthMode: row.bandwidthMode || '',
+    portRange: row.portRange || '',
+    loadBalancerGroup: row.loadBalancerGroup || '',
+    loadBalancerGroupKey: row.loadBalancerGroupKey || '',
+    healthCheckType: row.healthCheckType || '',
+    healthCheckInterval: row.healthCheckInterval || 0,
+    healthCheckTimeout: row.healthCheckTimeout || 0,
+    healthCheckMaxFailed: row.healthCheckMaxFailed || 0,
+    backupNodeCode: row.backupNodeCode || '',
+    failoverEnable: row.failoverEnable || 0,
+  }
   state.value.update.open = true
 }
 
@@ -146,6 +183,23 @@ const updateFunc = () => {
       try {
         state.value.update.loading = true
         await apiNormalGostClientForwardUpdate(state.value.update.data)
+        const adv = state.value.advanced
+        await apiNormalGostClientForwardAdvanced({
+          code: state.value.update.data.code,
+          multiplexer: adv.multiplexer,
+          routeByHTTPUser: adv.routeByHTTPUser,
+          bandwidthLimit: adv.bandwidthLimit,
+          bandwidthMode: adv.bandwidthMode,
+          portRange: adv.portRange,
+          loadBalancerGroup: adv.loadBalancerGroup,
+          loadBalancerGroupKey: adv.loadBalancerGroupKey,
+          healthCheckType: adv.healthCheckType,
+          healthCheckInterval: adv.healthCheckInterval,
+          healthCheckTimeout: adv.healthCheckTimeout,
+          healthCheckMaxFailed: adv.healthCheckMaxFailed,
+          backupNodeCode: adv.backupNodeCode,
+          failoverEnable: adv.failoverEnable,
+        })
         refreshTable()
         closeUpdate()
       } finally {
@@ -313,6 +367,7 @@ const migrateFunc = async () => {
 onBeforeMount(() => {
   pageFunc()
   clientListFunc()
+  loadHealth()
 })
 
 const operatorOptions = [
@@ -410,6 +465,22 @@ const operatorRenderLabel = (option) => {
       </SearchItem>
     </SearchCard>
 
+    <AppCard :show-border="false" v-if="batchSelected.length > 0">
+      <n-space align="center">
+        <span>{{ t('common.selected', {n: batchSelected.length}) }}</span>
+        <n-button size="small" type="info" :loading="batchLoading" :focusable="false"
+                  @click="batchRun('enable', refreshTable)">{{ t('common.batchEnable') }}</n-button>
+        <n-button size="small" type="warning" :loading="batchLoading" :focusable="false"
+                  @click="batchRun('disable', refreshTable)">{{ t('common.batchDisable') }}</n-button>
+        <n-popconfirm @positive-click="batchRun('delete', searchTable)">
+          <template #trigger>
+            <n-button size="small" type="error" :loading="batchLoading" :focusable="false">{{ t('common.batchDelete') }}</n-button>
+          </template>
+          {{ t('common.deleteConfirm') }}
+        </n-popconfirm>
+      </n-space>
+    </AppCard>
+
     <AppCard :show-border="false" :loading="state.table.searchLoading">
       <Empty v-if="state.table.list.length===0" border description="暂无数据"></Empty>
       <n-grid v-else x-gap="12" y-gap="12" cols="1 520:2 900:3 1400:4">
@@ -422,7 +493,10 @@ const operatorRenderLabel = (option) => {
             <n-h4 style="margin-bottom: 8px !important;">
               <n-space justify="space-between">
                 <n-space align="center" :size="6" :wrap="false">
+                  <n-checkbox :checked="batchIsSelected(row.code)"
+                              :on-update:checked="v => batchToggle(row.code, v)"/>
                   <span style="font-weight: bold">{{ row.name }}</span>
+                  <n-tag size="small" :type="healthTag(row.code).type" :bordered="false">{{ healthTag(row.code).text }}</n-tag>
                   <n-tag v-if="row.status===2" size="small" type="error" :bordered="false">已封禁</n-tag>
                 </n-space>
                 <div style="display: flex;justify-content: center">
@@ -585,6 +659,51 @@ const operatorRenderLabel = (option) => {
               :max="state.update.data.node.maxPoolCount"
           ></n-input-number>
         </n-form-item>
+        <n-collapse>
+          <n-collapse-item :title="t('common.advanced')" name="advanced">
+            <n-form-item :label="t('advanced.multiplexer')">
+              <n-input v-model:value="state.advanced.multiplexer"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.routeByHTTPUser')">
+              <n-input v-model:value="state.advanced.routeByHTTPUser"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.bandwidthLimit')">
+              <n-input v-model:value="state.advanced.bandwidthLimit" placeholder="1MB"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.bandwidthMode')">
+              <n-select v-model:value="state.advanced.bandwidthMode"
+                        :options="[{label:'client',value:'client'},{label:'server',value:'server'}]"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.portRange')">
+              <n-input v-model:value="state.advanced.portRange" placeholder="10000-10010"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.loadBalancerGroup')">
+              <n-input v-model:value="state.advanced.loadBalancerGroup"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.loadBalancerGroupKey')">
+              <n-input v-model:value="state.advanced.loadBalancerGroupKey"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.healthCheckType')">
+              <n-select v-model:value="state.advanced.healthCheckType"
+                        :options="[{label:t('advanced.healthCheckNone'),value:''},{label:t('advanced.healthCheckTcp'),value:'tcp'},{label:t('advanced.healthCheckHttp'),value:'http'}]"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.healthCheckInterval')">
+              <n-input-number v-model:value="state.advanced.healthCheckInterval" :min="0"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.healthCheckTimeout')">
+              <n-input-number v-model:value="state.advanced.healthCheckTimeout" :min="0"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.healthCheckMaxFailed')">
+              <n-input-number v-model:value="state.advanced.healthCheckMaxFailed" :min="0"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.backupNodeCode')">
+              <n-input v-model:value="state.advanced.backupNodeCode"/>
+            </n-form-item>
+            <n-form-item :label="t('advanced.failoverEnable')">
+              <n-switch v-model:value="state.advanced.failoverEnable" :checked-value="1" :unchecked-value="0"/>
+            </n-form-item>
+          </n-collapse-item>
+        </n-collapse>
       </n-form>
     </Modal>
 

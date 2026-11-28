@@ -186,4 +186,86 @@ export const normalRouters = [
             icon: '<svg t="1720285097002" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="34872" width="200" height="200"><path d="M512 0c282.784 0 512 229.216 512 512s-229.216 512-512 512S0 794.784 0 512 229.216 0 512 0z m0 42.656C252.8 42.656 42.656 252.8 42.656 512S252.8 981.344 512 981.344 981.344 771.2 981.344 512 771.2 42.656 512 42.656z" fill="#888888" p-id="34873"></path><path d="M512 512m-256 0a256 256 0 1 0 512 0 256 256 0 1 0-512 0Z" fill="#888888" p-id="34874"></path></svg>',
         }
     },
+    {
+        path: '/normal/health',
+        name: 'NormalHealth',
+        component: () => import('../../views/normal/health/index.vue'),
+        meta: {
+            title: '健康监控',
+            layout: 'simple',
+            hidden: 2,
+            group: '监控中心',
+            icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M512 896l-60-54C236 646 96 519 96 362 96 235 196 136 322 136c71 0 139 33 190 85 51-52 119-85 190-85 126 0 226 99 226 226 0 157-140 284-356 480l-60 54z" fill="#888888"></path></svg>',
+        }
+    },
+    {
+        path: '/normal/alert',
+        name: 'NormalAlert',
+        component: () => import('../../views/normal/alert/index.vue'),
+        meta: {
+            title: '告警通知',
+            layout: 'simple',
+            hidden: 2,
+            group: '监控中心',
+            icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M512 938c47 0 85-38 85-85H427c0 47 38 85 85 85z m288-256V469c0-131-91-241-213-270v-29c0-41-34-75-75-75s-75 34-75 75v29C315 228 224 338 224 469v213l-85 85v43h746v-43l-85-85z" fill="#888888"></path></svg>',
+        }
+    },
+    {
+        path: '/normal/metric',
+        name: 'NormalMetric',
+        component: () => import('../../views/normal/metric/index.vue'),
+        meta: {
+            title: '指标曲线',
+            layout: 'simple',
+            hidden: 2,
+            group: '监控中心',
+            icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M128 832h768v64H64V128h64v704z m128-192l192-192 128 128 256-288 48 42-300 338-132-132-146 146-46-42z" fill="#888888"></path></svg>',
+        }
+    },
+    {
+        path: '/normal/cert',
+        name: 'NormalCert',
+        component: () => import('../../views/normal/cert/index.vue'),
+        meta: {
+            title: '证书管理',
+            layout: 'simple',
+            hidden: 2,
+            icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M512 64l384 128v256c0 238-164 442-384 512C292 890 128 686 128 448V192L512 64z m-64 597l-149-149-60 60 209 209 341-341-60-60-281 281z" fill="#888888"></path></svg>',
+        }
+    },
+    {
+        path: '/normal/pay',
+        name: 'NormalPay',
+        component: () => import('../../views/normal/pay/index.vue'),
+        meta: {
+            title: '充值订单',
+            layout: 'simple',
+            hidden: 2,
+            icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M896 256H128c-35 0-64 29-64 64v448c0 35 29 64 64 64h768c35 0 64-29 64-64V320c0-35-29-64-64-64z m0 192H64v-96h832v96z m0 320H64V576h832v192z" fill="#888888"></path></svg>',
+        }
+    },
+    {
+        path: '/normal/api-token',
+        name: 'NormalApiToken',
+        component: () => import('../../views/normal/api_token/index.vue'),
+        meta: {
+            title: 'API令牌',
+            layout: 'simple',
+            hidden: 2,
+            group: '开发工具',
+            icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M704 128c-106 0-192 86-192 192 0 24 4 47 12 68L128 784v112h160v-80h80v-80h80l100-100c21 8 44 12 68 12 106 0 192-86 192-192s-86-192-192-192z m48 192c-27 0-48-21-48-48s21-48 48-48 48 21 48 48-21 48-48 48z" fill="#888888"></path></svg>',
+        }
+    },
+    {
+        path: '/normal/template',
+        name: 'NormalTemplate',
+        component: () => import('../../views/normal/template/index.vue'),
+        meta: {
+            title: '隧道模板',
+            layout: 'simple',
+            hidden: 2,
+            group: '开发工具',
+            icon: '<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200"><path d="M128 128h320v320H128V128z m448 0h320v320H576V128z m-448 448h320v320H128V576z m448 0h320v320H576V576z" fill="#888888"></path></svg>',
+        }
+    },
 ]

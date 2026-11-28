@@ -46,6 +46,8 @@ func newGostClientHost(db *gorm.DB, opts ...gen.DOOption) gostClientHost {
 	_gostClientHost.CustomForceHttps = field.NewInt(tableName, "custom_force_https")
 	_gostClientHost.CustomDomainMatcher = field.NewInt(tableName, "custom_domain_matcher")
 	_gostClientHost.NodeCode = field.NewString(tableName, "node_code")
+	_gostClientHost.BackupNodeCode = field.NewString(tableName, "backup_node_code")
+	_gostClientHost.FailoverEnable = field.NewInt(tableName, "failover_enable")
 	_gostClientHost.ClientCode = field.NewString(tableName, "client_code")
 	_gostClientHost.UserCode = field.NewString(tableName, "user_code")
 	_gostClientHost.Enable = field.NewInt(tableName, "enable")
@@ -54,8 +56,19 @@ func newGostClientHost(db *gorm.DB, opts ...gen.DOOption) gostClientHost {
 	_gostClientHost.UseEncryption = field.NewInt(tableName, "use_encryption")
 	_gostClientHost.UseCompression = field.NewInt(tableName, "use_compression")
 	_gostClientHost.PoolCount = field.NewInt(tableName, "pool_count")
+	_gostClientHost.Locations = field.NewString(tableName, "locations")
+	_gostClientHost.HostHeaderRewrite = field.NewString(tableName, "host_header_rewrite")
+	_gostClientHost.LoadBalancerGroup = field.NewString(tableName, "load_balancer_group")
+	_gostClientHost.LoadBalancerGroupKey = field.NewString(tableName, "load_balancer_group_key")
+	_gostClientHost.HealthCheckType = field.NewString(tableName, "health_check_type")
+	_gostClientHost.HealthCheckPath = field.NewString(tableName, "health_check_path")
+	_gostClientHost.HealthCheckInterval = field.NewInt(tableName, "health_check_interval")
+	_gostClientHost.HealthCheckTimeout = field.NewInt(tableName, "health_check_timeout")
+	_gostClientHost.HealthCheckMaxFailed = field.NewInt(tableName, "health_check_max_failed")
 	_gostClientHost.WhiteEnable = field.NewInt(tableName, "white_enable")
 	_gostClientHost.WhiteList = field.NewString(tableName, "white_list")
+	_gostClientHost.BlackEnable = field.NewInt(tableName, "black_enable")
+	_gostClientHost.BlackList = field.NewString(tableName, "black_list")
 	_gostClientHost.ChargingType = field.NewInt(tableName, "charging_type")
 	_gostClientHost.Cycle = field.NewInt(tableName, "cycle")
 	_gostClientHost.Amount = field.NewField(tableName, "amount")
@@ -116,44 +129,57 @@ func newGostClientHost(db *gorm.DB, opts ...gen.DOOption) gostClientHost {
 type gostClientHost struct {
 	gostClientHostDo
 
-	ALL                 field.Asterisk
-	Id                  field.Int
-	Code                field.String // code
-	AllowEdit           field.Int    // 是否可编辑
-	AllowDel            field.Int    // 是否可删除
-	Version             field.Int64
-	CreatedAt           field.Time
-	UpdatedAt           field.Time
-	Name                field.String // 名称
-	TargetIp            field.String // 内网IP
-	TargetPort          field.String // 内网端口
-	TargetHttps         field.Int    // 是否为Https服务
-	DomainPrefix        field.String // 域名前缀
-	CustomDomain        field.String // 自定义域名
-	CustomCert          field.String // 自定义证书
-	CustomKey           field.String // 自定义证书
-	CustomForceHttps    field.Int    // 强制HTTPS
-	CustomDomainMatcher field.Int    // 是否为泛域名
-	NodeCode            field.String // 节点编号
-	ClientCode          field.String // 客户端编号
-	UserCode            field.String // 用户编号
-	Enable              field.Int    // 启用状态
-	Status              field.Int    // 状态
-	BanReason           field.String // 封禁原因
-	UseEncryption       field.Int    // 加密
-	UseCompression      field.Int    // 压缩
-	PoolCount           field.Int    // 复用连接数量
-	WhiteEnable         field.Int    // 是否启用准入控制
-	WhiteList           field.String // 白名单
-	ChargingType        field.Int    // 计费方式
-	Cycle               field.Int    // 计费周期(天)
-	Amount              field.Field  // 费用
-	Limiter             field.Int    // 速度速率限制
-	RLimiter            field.Int    // 并发数量限制
-	CLimiter            field.Int    // 连接数量限制
-	LimitTotal          field.Int    // 流量包(GB),0无限制
-	ExpAt               field.Int64  // 套餐到期时间
-	Node                gostClientHostBelongsToNode
+	ALL                  field.Asterisk
+	Id                   field.Int
+	Code                 field.String // code
+	AllowEdit            field.Int    // 是否可编辑
+	AllowDel             field.Int    // 是否可删除
+	Version              field.Int64
+	CreatedAt            field.Time
+	UpdatedAt            field.Time
+	Name                 field.String // 名称
+	TargetIp             field.String // 内网IP
+	TargetPort           field.String // 内网端口
+	TargetHttps          field.Int    // 是否为Https服务
+	DomainPrefix         field.String // 域名前缀
+	CustomDomain         field.String // 自定义域名
+	CustomCert           field.String // 自定义证书
+	CustomKey            field.String // 自定义证书
+	CustomForceHttps     field.Int    // 强制HTTPS
+	CustomDomainMatcher  field.Int    // 是否为泛域名
+	NodeCode             field.String // 节点编号
+	BackupNodeCode       field.String // 备用节点编号
+	FailoverEnable       field.Int    // 故障转移
+	ClientCode           field.String // 客户端编号
+	UserCode             field.String // 用户编号
+	Enable               field.Int    // 启用状态
+	Status               field.Int    // 状态
+	BanReason            field.String // 封禁原因
+	UseEncryption        field.Int    // 加密
+	UseCompression       field.Int    // 压缩
+	PoolCount            field.Int    // 复用连接数量
+	Locations            field.String // HTTP路由locations(JSON数组)
+	HostHeaderRewrite    field.String // 回源Host改写
+	LoadBalancerGroup    field.String // 负载均衡组
+	LoadBalancerGroupKey field.String // 负载均衡组密钥
+	HealthCheckType      field.String // 健康检查类型tcp/http
+	HealthCheckPath      field.String // 健康检查路径
+	HealthCheckInterval  field.Int    // 健康检查间隔秒
+	HealthCheckTimeout   field.Int    // 健康检查超时秒
+	HealthCheckMaxFailed field.Int    // 健康检查最大失败次数
+	WhiteEnable          field.Int    // 是否启用准入控制
+	WhiteList            field.String // 白名单
+	BlackEnable          field.Int    // 是否启用黑名单
+	BlackList            field.String // 黑名单
+	ChargingType         field.Int    // 计费方式
+	Cycle                field.Int    // 计费周期(天)
+	Amount               field.Field  // 费用
+	Limiter              field.Int    // 速度速率限制
+	RLimiter             field.Int    // 并发数量限制
+	CLimiter             field.Int    // 连接数量限制
+	LimitTotal           field.Int    // 流量包(GB),0无限制
+	ExpAt                field.Int64  // 套餐到期时间
+	Node                 gostClientHostBelongsToNode
 
 	Client gostClientHostBelongsToClient
 
@@ -192,6 +218,8 @@ func (g *gostClientHost) updateTableName(table string) *gostClientHost {
 	g.CustomForceHttps = field.NewInt(table, "custom_force_https")
 	g.CustomDomainMatcher = field.NewInt(table, "custom_domain_matcher")
 	g.NodeCode = field.NewString(table, "node_code")
+	g.BackupNodeCode = field.NewString(table, "backup_node_code")
+	g.FailoverEnable = field.NewInt(table, "failover_enable")
 	g.ClientCode = field.NewString(table, "client_code")
 	g.UserCode = field.NewString(table, "user_code")
 	g.Enable = field.NewInt(table, "enable")
@@ -200,8 +228,19 @@ func (g *gostClientHost) updateTableName(table string) *gostClientHost {
 	g.UseEncryption = field.NewInt(table, "use_encryption")
 	g.UseCompression = field.NewInt(table, "use_compression")
 	g.PoolCount = field.NewInt(table, "pool_count")
+	g.Locations = field.NewString(table, "locations")
+	g.HostHeaderRewrite = field.NewString(table, "host_header_rewrite")
+	g.LoadBalancerGroup = field.NewString(table, "load_balancer_group")
+	g.LoadBalancerGroupKey = field.NewString(table, "load_balancer_group_key")
+	g.HealthCheckType = field.NewString(table, "health_check_type")
+	g.HealthCheckPath = field.NewString(table, "health_check_path")
+	g.HealthCheckInterval = field.NewInt(table, "health_check_interval")
+	g.HealthCheckTimeout = field.NewInt(table, "health_check_timeout")
+	g.HealthCheckMaxFailed = field.NewInt(table, "health_check_max_failed")
 	g.WhiteEnable = field.NewInt(table, "white_enable")
 	g.WhiteList = field.NewString(table, "white_list")
+	g.BlackEnable = field.NewInt(table, "black_enable")
+	g.BlackList = field.NewString(table, "black_list")
 	g.ChargingType = field.NewInt(table, "charging_type")
 	g.Cycle = field.NewInt(table, "cycle")
 	g.Amount = field.NewField(table, "amount")
@@ -226,7 +265,7 @@ func (g *gostClientHost) GetFieldByName(fieldName string) (field.OrderExpr, bool
 }
 
 func (g *gostClientHost) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 39)
+	g.fieldMap = make(map[string]field.Expr, 52)
 	g.fieldMap["id"] = g.Id
 	g.fieldMap["code"] = g.Code
 	g.fieldMap["allow_edit"] = g.AllowEdit
@@ -245,6 +284,8 @@ func (g *gostClientHost) fillFieldMap() {
 	g.fieldMap["custom_force_https"] = g.CustomForceHttps
 	g.fieldMap["custom_domain_matcher"] = g.CustomDomainMatcher
 	g.fieldMap["node_code"] = g.NodeCode
+	g.fieldMap["backup_node_code"] = g.BackupNodeCode
+	g.fieldMap["failover_enable"] = g.FailoverEnable
 	g.fieldMap["client_code"] = g.ClientCode
 	g.fieldMap["user_code"] = g.UserCode
 	g.fieldMap["enable"] = g.Enable
@@ -253,8 +294,19 @@ func (g *gostClientHost) fillFieldMap() {
 	g.fieldMap["use_encryption"] = g.UseEncryption
 	g.fieldMap["use_compression"] = g.UseCompression
 	g.fieldMap["pool_count"] = g.PoolCount
+	g.fieldMap["locations"] = g.Locations
+	g.fieldMap["host_header_rewrite"] = g.HostHeaderRewrite
+	g.fieldMap["load_balancer_group"] = g.LoadBalancerGroup
+	g.fieldMap["load_balancer_group_key"] = g.LoadBalancerGroupKey
+	g.fieldMap["health_check_type"] = g.HealthCheckType
+	g.fieldMap["health_check_path"] = g.HealthCheckPath
+	g.fieldMap["health_check_interval"] = g.HealthCheckInterval
+	g.fieldMap["health_check_timeout"] = g.HealthCheckTimeout
+	g.fieldMap["health_check_max_failed"] = g.HealthCheckMaxFailed
 	g.fieldMap["white_enable"] = g.WhiteEnable
 	g.fieldMap["white_list"] = g.WhiteList
+	g.fieldMap["black_enable"] = g.BlackEnable
+	g.fieldMap["black_list"] = g.BlackList
 	g.fieldMap["charging_type"] = g.ChargingType
 	g.fieldMap["cycle"] = g.Cycle
 	g.fieldMap["amount"] = g.Amount

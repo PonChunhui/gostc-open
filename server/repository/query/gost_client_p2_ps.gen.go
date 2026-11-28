@@ -41,6 +41,8 @@ func newGostClientP2P(db *gorm.DB, opts ...gen.DOOption) gostClientP2P {
 	_gostClientP2P.VKey = field.NewString(tableName, "v_key")
 	_gostClientP2P.Forward = field.NewInt(tableName, "forward")
 	_gostClientP2P.NodeCode = field.NewString(tableName, "node_code")
+	_gostClientP2P.BackupNodeCode = field.NewString(tableName, "backup_node_code")
+	_gostClientP2P.FailoverEnable = field.NewInt(tableName, "failover_enable")
 	_gostClientP2P.ClientCode = field.NewString(tableName, "client_code")
 	_gostClientP2P.UserCode = field.NewString(tableName, "user_code")
 	_gostClientP2P.Enable = field.NewInt(tableName, "enable")
@@ -49,6 +51,9 @@ func newGostClientP2P(db *gorm.DB, opts ...gen.DOOption) gostClientP2P {
 	_gostClientP2P.UseEncryption = field.NewInt(tableName, "use_encryption")
 	_gostClientP2P.UseCompression = field.NewInt(tableName, "use_compression")
 	_gostClientP2P.PoolCount = field.NewInt(tableName, "pool_count")
+	_gostClientP2P.NatType = field.NewString(tableName, "nat_type")
+	_gostClientP2P.RelayBytes = field.NewInt64(tableName, "relay_bytes")
+	_gostClientP2P.KeepTunnelOpen = field.NewInt(tableName, "keep_tunnel_open")
 	_gostClientP2P.ChargingType = field.NewInt(tableName, "charging_type")
 	_gostClientP2P.Cycle = field.NewInt(tableName, "cycle")
 	_gostClientP2P.Amount = field.NewField(tableName, "amount")
@@ -123,6 +128,8 @@ type gostClientP2P struct {
 	VKey           field.String // 访问密钥
 	Forward        field.Int    // 是否中继
 	NodeCode       field.String // 节点编号
+	BackupNodeCode field.String // 备用节点编号
+	FailoverEnable field.Int    // 故障转移
 	ClientCode     field.String // 客户端编号
 	UserCode       field.String // 用户编号
 	Enable         field.Int    // 启用状态
@@ -131,6 +138,9 @@ type gostClientP2P struct {
 	UseEncryption  field.Int    // 加密
 	UseCompression field.Int    // 压缩
 	PoolCount      field.Int    // 复用连接数量
+	NatType        field.String // 最近探测的NAT类型
+	RelayBytes     field.Int64  // STCP中继累计流量字节
+	KeepTunnelOpen field.Int    // 打洞保持隧道开启
 	ChargingType   field.Int    // 计费方式
 	Cycle          field.Int    // 计费周期(天)
 	Amount         field.Field  // 费用
@@ -173,6 +183,8 @@ func (g *gostClientP2P) updateTableName(table string) *gostClientP2P {
 	g.VKey = field.NewString(table, "v_key")
 	g.Forward = field.NewInt(table, "forward")
 	g.NodeCode = field.NewString(table, "node_code")
+	g.BackupNodeCode = field.NewString(table, "backup_node_code")
+	g.FailoverEnable = field.NewInt(table, "failover_enable")
 	g.ClientCode = field.NewString(table, "client_code")
 	g.UserCode = field.NewString(table, "user_code")
 	g.Enable = field.NewInt(table, "enable")
@@ -181,6 +193,9 @@ func (g *gostClientP2P) updateTableName(table string) *gostClientP2P {
 	g.UseEncryption = field.NewInt(table, "use_encryption")
 	g.UseCompression = field.NewInt(table, "use_compression")
 	g.PoolCount = field.NewInt(table, "pool_count")
+	g.NatType = field.NewString(table, "nat_type")
+	g.RelayBytes = field.NewInt64(table, "relay_bytes")
+	g.KeepTunnelOpen = field.NewInt(table, "keep_tunnel_open")
 	g.ChargingType = field.NewInt(table, "charging_type")
 	g.Cycle = field.NewInt(table, "cycle")
 	g.Amount = field.NewField(table, "amount")
@@ -205,7 +220,7 @@ func (g *gostClientP2P) GetFieldByName(fieldName string) (field.OrderExpr, bool)
 }
 
 func (g *gostClientP2P) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 32)
+	g.fieldMap = make(map[string]field.Expr, 37)
 	g.fieldMap["id"] = g.Id
 	g.fieldMap["code"] = g.Code
 	g.fieldMap["allow_edit"] = g.AllowEdit
@@ -219,6 +234,8 @@ func (g *gostClientP2P) fillFieldMap() {
 	g.fieldMap["v_key"] = g.VKey
 	g.fieldMap["forward"] = g.Forward
 	g.fieldMap["node_code"] = g.NodeCode
+	g.fieldMap["backup_node_code"] = g.BackupNodeCode
+	g.fieldMap["failover_enable"] = g.FailoverEnable
 	g.fieldMap["client_code"] = g.ClientCode
 	g.fieldMap["user_code"] = g.UserCode
 	g.fieldMap["enable"] = g.Enable
@@ -227,6 +244,9 @@ func (g *gostClientP2P) fillFieldMap() {
 	g.fieldMap["use_encryption"] = g.UseEncryption
 	g.fieldMap["use_compression"] = g.UseCompression
 	g.fieldMap["pool_count"] = g.PoolCount
+	g.fieldMap["nat_type"] = g.NatType
+	g.fieldMap["relay_bytes"] = g.RelayBytes
+	g.fieldMap["keep_tunnel_open"] = g.KeepTunnelOpen
 	g.fieldMap["charging_type"] = g.ChargingType
 	g.fieldMap["cycle"] = g.Cycle
 	g.fieldMap["amount"] = g.Amount

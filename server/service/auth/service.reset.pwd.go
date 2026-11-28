@@ -42,7 +42,11 @@ func (service *service) ResetPwd(req ResetPwdReq) error {
 	}
 	newPwd := utils.RandStr(8, utils.AllDict)
 	user.Salt = utils.RandStr(8, utils.AllDict)
-	user.Password = utils.MD5AndSalt(newPwd, user.Salt)
+	newHash, err := utils.HashPassword(newPwd)
+	if err != nil {
+		return errors.New("重置失败")
+	}
+	user.Password = newHash
 
 	return db.Transaction(func(tx *query.Query) error {
 		if err := tx.SystemUser.Save(user); err != nil {

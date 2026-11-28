@@ -42,6 +42,9 @@ type GostNode struct {
 	LimitTotal         int              `gorm:"column:limit_total;comment:预警流量(GB)"`
 	LimitKind          int              `gorm:"column:limit_kind;size:1;default:0;comment:限制方式"`
 	TunnelLimit        int              `gorm:"column:tunnel_limit;default:0;comment:隧道数量上限，0表示不限制"`
+	GroupCode          string           `gorm:"column:group_code;index:idx_gost_node_grp_code;comment:节点分组编号"`
+	Priority           int              `gorm:"column:priority;default:0;comment:调度优先级，越小越优先"`
+	Weight             int              `gorm:"column:weight;default:1;comment:调度权重"`
 }
 
 // 生成更新指纹，对比指纹判断是否需要标记更新

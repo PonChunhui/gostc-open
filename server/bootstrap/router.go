@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"github.com/gin-gonic/gin"
+	"server/controller/public/openapi"
 	"server/global"
 )
 
@@ -20,5 +21,6 @@ func InitRouter() {
 	if Route != nil {
 		Route(engine)
 	}
+	openapi.SetRoutes(engine.Routes())
 	global.Logger.Info("init router finish")
 }

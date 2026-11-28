@@ -21,6 +21,11 @@ import {
   GOSTC_PROCESS_PREFIX, GOSTC_PROCESS_SUBPATHS,
 } from './shared.js';
 import { createProcessManager } from './process.js';
+import { writeFileSync } from 'node:fs';
+
+const DIAG = 'C:/code/gostc-open-main/dsh-gostc-plugin/';
+const diag = (f, o) => { try { writeFileSync(DIAG + f, JSON.stringify(Object.assign({ ts: new Date().toISOString(), pid: process.pid }, o))); } catch {} };
+diag('diag-1-module.json', { stage: 'module-loaded' });
 
 export const name = 'gostc';
 
@@ -67,6 +72,7 @@ function readBoundedBody(req) {
 }
 
 export function apply(ctx, config) {
+  diag('diag-2-apply.json', { stage: 'apply', hasWebServer: !!ctx.get('webServer') });
   const backend = String(config?.backend || 'http://127.0.0.1:18080').replace(/\/+$/, '');
   const username = String(config?.username || '');
   const password = String(config?.password || '');
@@ -220,8 +226,12 @@ export function apply(ctx, config) {
   // gate can leave the fiber pending if the service resolves in a later boot
   // phase. ctx.inject re-runs the callback whenever webServer (re)appears.
   if (ctx.get('webServer')) {
+    diag('diag-3-bind.json', { stage: 'bind-direct', port: ctx.get('webServer').port ?? null });
     registerOn(ctx);
   } else {
-    ctx.inject(['webServer'], (inner) => registerOn(inner));
+    ctx.inject(['webServer'], (inner) => {
+      diag('diag-3-bind.json', { stage: 'bind-inject', port: inner.webServer.port ?? null });
+      registerOn(inner);
+    });
   }
 }

@@ -8,6 +8,8 @@ type GostClientProxy struct {
 	AuthUser       string     `gorm:"column:auth_user;comment:认证用户"`
 	AuthPwd        string     `gorm:"column:auth_pwd;comment:认证密码"`
 	NodeCode       string     `gorm:"column:node_code;index;comment:节点编号"`
+	BackupNodeCode string     `gorm:"column:backup_node_code;index;comment:备用节点编号"`
+	FailoverEnable int        `gorm:"column:failover_enable;size:1;default:2;comment:故障转移"`
 	Node           GostNode   `gorm:"foreignKey:NodeCode;references:Code"`
 	ClientCode     string     `gorm:"column:client_code;index;comment:客户端编号"`
 	Client         GostClient `gorm:"foreignKey:ClientCode;references:Code"`

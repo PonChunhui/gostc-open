@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"server/model"
 	cache2 "server/repository/cache"
+	"server/service/common/alert"
 	"server/service/common/tunnel_quota"
 	"server/service/common/user_group"
 	"strings"
@@ -69,18 +70,25 @@ func (s *service) NewProxy(req NewProxyReq) (any, error) {
 			obsUseTotal += obsInfo.OutputBytes + obsLimit.OutputBytes
 		}
 		if obsUseTotal >= int64(nodeInfo.LimitTotal)*1024*1024*1024 {
+			alert.Dispatch(model.ALERT_EVENT_TRAFFIC_EXHAUST, model.ALERT_TARGET_NODE, result.NodeCode, result.UserCode,
+				"节点流量耗尽告警", "节点 "+result.NodeCode+" 流量已耗尽，隧道 "+tunnelCode+" 无法注册")
 			return nil, errors.New("insufficient node traffic")
 		}
 	}
 	if tunnel_quota.Exhausted(result.Code, result.LimitTotal) {
+		alert.Dispatch(model.ALERT_EVENT_TRAFFIC_EXHAUST, model.ALERT_TARGET_TUNNEL, result.Code, result.UserCode,
+			"隧道流量耗尽告警", "隧道 "+tunnelCode+" 流量包已耗尽")
 		return nil, errors.New("insufficient tunnel traffic")
 	}
 	if groupLimit := user_group.LimitsCached(result.UserCode); groupLimit.MonthTraffic > 0 && user_group.MonthExhausted(result.UserCode, groupLimit.MonthTraffic) {
+		alert.Dispatch(model.ALERT_EVENT_TRAFFIC_EXHAUST, model.ALERT_TARGET_ALL, result.UserCode, result.UserCode,
+			"用户流量耗尽告警", "用户 "+result.UserCode+" 本月流量已耗尽")
 		return nil, errors.New("insufficient user traffic")
 	}
 
 	req.Content.BandwidthLimit = fmt.Sprintf("%dKB", result.Limiter*128)
 	//req.Content.UseCompression = true
 	//req.Content.UseEncryption = true
+	cache2.SetTunnelRegistered(tunnelCode, true) // 健康监控：标记隧道已在节点注册
 	return req.Content, nil
 }

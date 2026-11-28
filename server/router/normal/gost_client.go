@@ -14,4 +14,5 @@ func InitGostClient(group *gin.RouterGroup) {
 	g.POST("delete", gost_client.Delete)
 	g.POST("page", gost_client.Page)
 	g.POST("list", gost_client.List)
+	g.POST("batch", gost_client.Batch)
 }

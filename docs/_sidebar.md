@@ -2,7 +2,13 @@
 - [快速上手](quick-start.md)
 - [账号与个人中心](account.md)
 - [客户端安装](client-install.md)
+- [客户端自更新](client-update.md)
 - [功能说明](features.md)
+- 产品增强规划
+  - [产品文档](product/产品文档.md)
+  - [PRD（12 模块需求）](product/PRD.md)
+  - [开发路线图](product/开发路线图.md)
+  - [部署与升级指南](product/部署与升级.md)
 - 常见案例
   - [DeepSeek Harness AI-HUB 插件移动端公网直连](cases/ai-hub-mobile.md)
 - [常见问题](faq.md)

@@ -87,6 +87,19 @@ func Update(c *gin.Context) {
 	bean.Response.Ok(c)
 }
 
+func Advanced(c *gin.Context) {
+	var req service.AdvancedReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		bean.Response.Param(c, err)
+		return
+	}
+	if err := svr.Advanced(middleware.GetClaims(c), req); err != nil {
+		bean.Response.Fail(c, err.Error())
+		return
+	}
+	bean.Response.Ok(c)
+}
+
 func Enable(c *gin.Context) {
 	var req service.EnableReq
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -10,6 +10,7 @@ import (
 	"net"
 	"server/global"
 	"server/model"
+	"server/pkg/crypto"
 	"server/pkg/rpc_protocol/websocket"
 	"server/repository"
 	cache3 "server/repository/cache"
@@ -200,6 +201,9 @@ func InitFrp(ginEngine *gin.Engine, ln net.Listener) {
 			InputBytes:  req.Total,
 			OutputBytes: 0,
 		})
+		if strings.HasSuffix(req.Name, "_p2pstcp") {
+			go cache3.IncreaseP2PRelay(code, req.Total)
+		}
 		_ = c.Write("success")
 	})
 	rpcServer.Handler.Handle("rpc/metrics/output", func(c *arpc.Context) {
@@ -214,6 +218,9 @@ func InitFrp(ginEngine *gin.Engine, ln net.Listener) {
 			InputBytes:  0,
 			OutputBytes: req.Total,
 		})
+		if strings.HasSuffix(req.Name, "_p2pstcp") {
+			go cache3.IncreaseP2PRelay(code, req.Total)
+		}
 		_ = c.Write("success")
 	})
 
@@ -240,7 +247,8 @@ func InitFrp(ginEngine *gin.Engine, ln net.Listener) {
 			_ = c.Write("no tunnel matching the domain name was queried.")
 			return
 		}
-		if host.CustomCert == req.Cert && host.CustomKey == req.Key {
+		plainKey := crypto.DecryptSafe(host.CustomKey, global.Config.Encrypt.Key)
+		if host.CustomCert == req.Cert && plainKey == req.Key {
 			_ = c.Write("success")
 			return
 		}

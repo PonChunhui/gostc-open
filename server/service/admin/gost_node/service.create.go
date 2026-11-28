@@ -38,6 +38,10 @@ type CreateReq struct {
 	LimitTotal      int `json:"limitTotal"`
 	LimitKind       int `json:"limitKind"`
 	TunnelLimit     int `json:"tunnelLimit"`
+
+	GroupCode string `json:"groupCode"`
+	Priority  int    `json:"priority"`
+	Weight    int    `json:"weight"`
 }
 
 func (service *service) Create(req CreateReq) error {
@@ -69,6 +73,9 @@ func (service *service) Create(req CreateReq) error {
 		LimitKind:          req.LimitKind,
 		MaxPoolCount:       req.MaxPoolCount,
 		TunnelLimit:        req.TunnelLimit,
+		GroupCode:          req.GroupCode,
+		Priority:           req.Priority,
+		Weight:             req.Weight,
 	}
 	if err := db.GostNode.Create(&node); err != nil {
 		log.Error("新增节点失败", zap.Error(err))

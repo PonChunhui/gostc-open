@@ -38,12 +38,17 @@ func (service *service) Login(ip string, req LoginReq) (result LoginResp, err er
 		return result, errors.New("验证码错误")
 	}
 
+	if cache2.LoginLocked(req.Account) {
+		return result, errors.New("账号已锁定，请15分钟后再试")
+	}
+
 	user, _ := db.SystemUser.Where(db.SystemUser.Account.Eq(req.Account)).First()
 	if user == nil {
 		return result, errors.New("未查询到账户信息")
 	}
 
-	if utils.MD5AndSalt(req.Password, user.Salt) != user.Password {
+	if !utils.VerifyPassword(req.Password, user.Password, user.Salt) {
+		cache2.LoginFail(req.Account)
 		return result, errors.New("账号或密码错误")
 	}
 
@@ -52,6 +57,13 @@ func (service *service) Login(ip string, req LoginReq) (result LoginResp, err er
 			return result, errors.New("账号已被封禁：" + user.BanReason)
 		}
 		return result, errors.New("账号已被封禁，请联系管理员")
+	}
+
+	// 旧 MD5 哈希透明升级为 bcrypt（升级失败不阻塞登录，保留旧哈希仍可登录）
+	if utils.PasswordNeedsUpgrade(user.Password) {
+		if h, e := utils.HashPassword(req.Password); e == nil {
+			_, _ = db.SystemUser.Where(db.SystemUser.Code.Eq(user.Code)).Update(db.SystemUser.Password, h)
+		}
 	}
 
 	if user.OtpKey == "" {
@@ -76,5 +88,6 @@ func (service *service) Login(ip string, req LoginReq) (result LoginResp, err er
 			ExpAt: 0,
 		}
 	}
+	cache2.LoginSuccess(req.Account)
 	return result, nil
 }

@@ -40,9 +40,24 @@ type Item struct {
 	SSHMatcher     ItemMatcher   `json:"sshMatcher"`
 	WhiteEnable    int           `json:"whiteEnable"`
 	WhiteList      []string      `json:"whiteList"`
+	BlackEnable    int           `json:"blackEnable"`
+	BlackList      []string      `json:"blackList"`
 	UseEncryption  int           `json:"useEncryption"`
 	UseCompression int           `json:"useCompression"`
 	PoolCount      int           `json:"poolCount"`
+	Multiplexer          string `json:"multiplexer"`
+	RouteByHTTPUser      string `json:"routeByHTTPUser"`
+	BandwidthLimit       string `json:"bandwidthLimit"`
+	BandwidthMode        string `json:"bandwidthMode"`
+	PortRange            string `json:"portRange"`
+	LoadBalancerGroup    string `json:"loadBalancerGroup"`
+	LoadBalancerGroupKey string `json:"loadBalancerGroupKey"`
+	HealthCheckType      string `json:"healthCheckType"`
+	HealthCheckInterval  int    `json:"healthCheckInterval"`
+	HealthCheckTimeout   int    `json:"healthCheckTimeout"`
+	HealthCheckMaxFailed int    `json:"healthCheckMaxFailed"`
+	BackupNodeCode       string `json:"backupNodeCode"`
+	FailoverEnable       int    `json:"failoverEnable"`
 }
 
 type ItemMatcher struct {
@@ -159,9 +174,24 @@ func (service *service) Page(claims jwt.Claims, req PageReq) (list []Item, total
 			//},
 			WhiteEnable:    forward.WhiteEnable,
 			WhiteList:      forward.GetWhiteList(),
+			BlackEnable:    forward.BlackEnable,
+			BlackList:      forward.GetBlackList(),
 			UseEncryption:  forward.UseEncryption,
 			UseCompression: forward.UseCompression,
 			PoolCount:      forward.PoolCount,
+			Multiplexer:          forward.Multiplexer,
+			RouteByHTTPUser:      forward.RouteByHTTPUser,
+			BandwidthLimit:       forward.BandwidthLimit,
+			BandwidthMode:        forward.BandwidthMode,
+			PortRange:            forward.PortRange,
+			LoadBalancerGroup:    forward.LoadBalancerGroup,
+			LoadBalancerGroupKey: forward.LoadBalancerGroupKey,
+			HealthCheckType:      forward.HealthCheckType,
+			HealthCheckInterval:  forward.HealthCheckInterval,
+			HealthCheckTimeout:   forward.HealthCheckTimeout,
+			HealthCheckMaxFailed: forward.HealthCheckMaxFailed,
+			BackupNodeCode:       forward.BackupNodeCode,
+			FailoverEnable:       forward.FailoverEnable,
 		})
 	}
 	return list, total

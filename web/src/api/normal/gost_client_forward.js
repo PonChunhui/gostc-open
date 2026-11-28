@@ -83,3 +83,11 @@ export const apiNormalGostClientForwardDelete = (data) => {
         data
     })
 }
+
+export const apiNormalGostClientForwardAdvanced = (data) => {
+    return request.request({
+        url: `${baseUrl}/advanced`,
+        method: 'POST',
+        data
+    })
+}
