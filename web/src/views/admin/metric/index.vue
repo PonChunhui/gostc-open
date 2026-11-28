@@ -1,24 +1,23 @@
 <script setup>
 import {computed, h, nextTick, onBeforeMount, onBeforeUnmount, ref, watch} from "vue";
+import {useI18n} from "vue-i18n";
 import * as echarts from "echarts";
 import {apiAdminMetricRealtime, apiAdminMetricHistory, apiAdminMetricTop, apiAdminMetricObjects} from "../../../api/admin/metric.js";
 import AppCard from "../../../layout/components/AppCard.vue";
 import SearchCard from "../../../layout/components/SearchCard.vue";
 import SearchItem from "../../../layout/components/SearchItem.vue";
 
-const kindOptions = [
-  {key: 1, value: '节点'},
-  {key: 2, value: '客户端'},
-  {key: 3, value: '隧道'},
-  {key: 4, value: '用户'},
-]
+const {t} = useI18n()
+
+const kindOptions = computed(() => [
+  {key: 1, value: t('metric.kindNode')},
+  {key: 2, value: t('metric.kindClient')},
+  {key: 3, value: t('metric.kindTunnel')},
+  {key: 4, value: t('metric.kindUser')},
+])
 const metricKeys = ['connections', 'input_rate', 'output_rate', 'tunnel_count', 'client_count']
-const metricTextMap = {
-  connections: '连接数', input_rate: '上行速率', output_rate: '下行速率',
-  tunnel_count: '隧道数', client_count: '客户端数',
-}
-const metricOptions = metricKeys.map(m => ({key: m, value: metricTextMap[m]}))
-const metricText = (m) => metricTextMap[m] || m
+const metricOptions = computed(() => metricKeys.map(m => ({key: m, value: t('metric.m_' + m)})))
+const metricText = (m) => t('metric.m_' + m)
 const isRate = (m) => m === 'input_rate' || m === 'output_rate'
 
 const fmtRate = (v) => {
@@ -50,9 +49,9 @@ const topMax = computed(() => {
   return max
 })
 const topColumns = computed(() => [
-  {title: '排名', key: 'rank', width: 70, render: (row, index) => index + 1},
+  {title: t('metric.rank'), key: 'rank', width: 70, render: (row, index) => index + 1},
   {
-    title: '名称', key: 'name', ellipsis: {tooltip: true}, minWidth: 180, render(row) {
+    title: t('common.name'), key: 'name', ellipsis: {tooltip: true}, minWidth: 180, render(row) {
       return h('div', {}, [
         h('div', {style: 'font-weight:500'}, row.name || '-'),
         h('div', {style: 'font-size:12px;color:#999'}, row.code),
@@ -60,12 +59,12 @@ const topColumns = computed(() => [
     }
   },
   {
-    title: '数值', key: 'value', width: 140, render(row) {
+    title: t('metric.value'), key: 'value', width: 140, render(row) {
       return fmtValue(state.value.top.metric, row.value)
     }
   },
   {
-    title: '占比', key: 'bar', minWidth: 160, render(row) {
+    title: t('metric.percent'), key: 'bar', minWidth: 160, render(row) {
       const max = topMax.value
       const pct = max > 0 ? Math.round((Number(row.value) || 0) / max * 100) : 0
       return h('div', {style: 'width:100%'}, [
@@ -195,48 +194,52 @@ onBeforeUnmount(() => {
   <div>
     <!-- 全站 TopN -->
     <SearchCard :show-border="false" space>
-      <SearchItem type="select" :label-width="80" label="对象类型" :options="kindOptions"
+      <SearchItem type="select" :label-width="80" :label="t('metric.originKind')" :options="kindOptions"
                   :options-key-value="{key:'key',value:'value'}" :default="state.top.originKind"
                   @onChange="value => state.top.originKind = value"/>
-      <SearchItem type="select" :label-width="80" label="指标" :options="metricOptions"
+      <SearchItem type="select" :label-width="80" :label="t('metric.metric')" :options="metricOptions"
                   :options-key-value="{key:'key',value:'value'}" :default="state.top.metric"
                   @onChange="value => state.top.metric = value"/>
-      <SearchItem type="input-number" :label-width="80" label="数量" :default="state.top.limit"
+      <SearchItem type="input-number" :label-width="80" :label="t('metric.limit')" :default="state.top.limit"
                   :input-number-min="1" :input-number-max="100"
                   @onChange="value => state.top.limit = value"/>
       <SearchItem type="custom">
         <n-space>
-          <n-button type="info" :focusable="false" :loading="state.top.loading" @click="topFunc">查询 TopN</n-button>
+          <n-button type="info" :focusable="false" :loading="state.top.loading" @click="topFunc">{{ t('metric.topN') }}</n-button>
         </n-space>
       </SearchItem>
     </SearchCard>
     <AppCard :loading="state.top.loading">
-      <n-data-table :columns="topColumns" :data="state.top.list" :bordered="false" :scroll-x="600"/>
+      <n-data-table :columns="topColumns" :data="state.top.list" :bordered="false" :scroll-x="600">
+        <template #empty>
+          <n-empty :description="t('common.noData')"/>
+        </template>
+      </n-data-table>
     </AppCard>
 
     <!-- 实时曲线 -->
     <SearchCard :show-border="false" space>
-      <SearchItem type="select" :label-width="80" label="对象类型" :options="kindOptions"
+      <SearchItem type="select" :label-width="80" :label="t('metric.originKind')" :options="kindOptions"
                   :options-key-value="{key:'key',value:'value'}" :default="state.rt.originKind"
                   @onChange="onRtKind"/>
-      <SearchItem type="custom" :label-width="80" label="对象">
+      <SearchItem type="custom" :label-width="80" :label="t('metric.object')">
         <n-select v-model:value="state.rt.originCode" :options="state.rt.objects"
-                  label-field="name" value-field="code" filterable clearable placeholder="选择对象"
+                  label-field="name" value-field="code" filterable clearable :placeholder="t('metric.selectObject')"
                   style="min-width:220px" @update:value="realtimeFunc"/>
       </SearchItem>
       <SearchItem type="custom">
         <n-space>
-          <n-button type="info" :focusable="false" :loading="state.rt.loading" @click="realtimeFunc">查询实时</n-button>
+          <n-button type="info" :focusable="false" :loading="state.rt.loading" @click="realtimeFunc">{{ t('metric.queryRealtime') }}</n-button>
         </n-space>
       </SearchItem>
     </SearchCard>
     <AppCard :show-border="false">
       <n-space vertical>
         <n-space align="center">
-          <span>指标：</span>
+          <span>{{ t('metric.metric') }}:</span>
           <n-select v-model:value="state.rt.metrics" multiple style="min-width:300px"
                     :options="metricOptions" :label-field="'value'" :value-field="'key'"/>
-          <n-checkbox v-model:checked="state.rt.autoRefresh">自动刷新(10s)</n-checkbox>
+          <n-checkbox v-model:checked="state.rt.autoRefresh">{{ t('metric.autoRefreshInterval') }}</n-checkbox>
         </n-space>
         <n-space>
           <n-tag v-for="(v,k) in state.rt.gauge" :key="k" size="small" type="info">
@@ -251,27 +254,27 @@ onBeforeUnmount(() => {
 
     <!-- 历史曲线 -->
     <SearchCard :show-border="false" space>
-      <SearchItem type="select" :label-width="80" label="对象类型" :options="kindOptions"
+      <SearchItem type="select" :label-width="80" :label="t('metric.originKind')" :options="kindOptions"
                   :options-key-value="{key:'key',value:'value'}" :default="state.hist.originKind"
                   @onChange="onHistKind"/>
-      <SearchItem type="custom" :label-width="80" label="对象">
+      <SearchItem type="custom" :label-width="80" :label="t('metric.object')">
         <n-select v-model:value="state.hist.originCode" :options="state.hist.objects"
-                  label-field="name" value-field="code" filterable clearable placeholder="选择对象"
+                  label-field="name" value-field="code" filterable clearable :placeholder="t('metric.selectObject')"
                   style="min-width:220px" @update:value="historyFunc"/>
       </SearchItem>
       <SearchItem type="custom">
         <n-space>
-          <n-button type="info" :focusable="false" :loading="state.hist.loading" @click="historyFunc">查询历史</n-button>
+          <n-button type="info" :focusable="false" :loading="state.hist.loading" @click="historyFunc">{{ t('metric.queryHistory') }}</n-button>
         </n-space>
       </SearchItem>
     </SearchCard>
     <AppCard :show-border="false">
       <n-space align="center">
-        <span>指标：</span>
+        <span>{{ t('metric.metric') }}:</span>
         <n-select v-model:value="state.hist.metric" style="min-width:160px"
                   :options="metricOptions" :label-field="'value'" :value-field="'key'"/>
-        <n-date-picker v-model:value="state.hist.startTs" type="datetime" placeholder="开始时间"/>
-        <n-date-picker v-model:value="state.hist.endTs" type="datetime" placeholder="结束时间"/>
+        <n-date-picker v-model:value="state.hist.startTs" type="datetime" :placeholder="t('metric.startTs')"/>
+        <n-date-picker v-model:value="state.hist.endTs" type="datetime" :placeholder="t('metric.endTs')"/>
       </n-space>
     </AppCard>
     <AppCard>

@@ -12,8 +12,10 @@ import SearchItem from "../../../layout/components/SearchItem.vue";
 import Modal from "../../../components/Modal.vue";
 import {requiredRule} from "../../../utils/formDataRule.js";
 import {generateButtonGroup, generateUpdateButton, generateDeleteButton, generateTextButton} from "../../../utils/tableHelper.js";
+import {useTableBatch, runBatch} from "../../../utils/useTableBatch.js";
 
 const {t} = useI18n()
+const {checkedKeys, onCheck, clear} = useTableBatch()
 
 const providerOptions = computed(() => [
   {key: 'dnspod', value: 'DNSPod'},
@@ -40,6 +42,7 @@ const state = ref({
 })
 
 const tableColumns = computed(() => [
+  {type: 'selection', fixed: 'left', width: 50},
   {title: t('cert.domain'), key: 'domain', ellipsis: {tooltip: true}},
   {title: t('cert.provider'), key: 'provider', width: 110},
   {
@@ -115,6 +118,9 @@ const updateFunc = () => {
   })
 }
 const deleteFunc = async (row) => { await apiNormalCertDelete({code: row.code}); searchTable() }
+const batchDelete = () => {
+  runBatch(t, checkedKeys.value, (code) => apiNormalCertDelete({code}), () => { clear(); searchTable() })
+}
 
 const issueFunc = (row) => {
   $dialog.warning({
@@ -164,9 +170,22 @@ onBeforeMount(() => { pageFunc() })
       </SearchItem>
     </SearchCard>
 
+    <AppCard :show-border="false" v-if="checkedKeys.length">
+      <n-space align="center">
+        <span>{{ t('common.selected', {n: checkedKeys.length}) }}</span>
+        <n-button size="small" type="error" :focusable="false" @click="batchDelete">{{ t('common.batchDelete') }}</n-button>
+        <n-button size="small" :focusable="false" @click="clear">{{ t('common.clearSelection') }}</n-button>
+      </n-space>
+    </AppCard>
     <AppCard>
       <n-data-table remote :columns="tableColumns" :data="state.table.list" :bordered="false"
-                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"/>
+                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"
+                    :row-key="row => row.code" :checked-row-keys="checkedKeys"
+                    @update:checked-row-keys="onCheck">
+        <template #empty>
+          <n-empty :description="t('common.noData')"/>
+        </template>
+      </n-data-table>
     </AppCard>
     <AppCard :show-border="false">
       <n-pagination :page-size="state.table.search.size" :page="state.table.search.page"

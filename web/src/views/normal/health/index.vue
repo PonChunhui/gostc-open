@@ -141,7 +141,11 @@ onBeforeMount(() => {
 
     <AppCard>
       <n-data-table remote :columns="tableColumns" :data="state.table.list" :bordered="false"
-                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"/>
+                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth">
+        <template #empty>
+          <n-empty :description="t('common.noData')"/>
+        </template>
+      </n-data-table>
     </AppCard>
 
     <AppCard :show-border="false">

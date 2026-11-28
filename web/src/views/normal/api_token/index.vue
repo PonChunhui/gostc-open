@@ -8,8 +8,10 @@ import SearchItem from "../../../layout/components/SearchItem.vue";
 import Modal from "../../../components/Modal.vue";
 import {requiredRule} from "../../../utils/formDataRule.js";
 import {generateButtonGroup, generateDeleteButton} from "../../../utils/tableHelper.js";
+import {useTableBatch, runBatch} from "../../../utils/useTableBatch.js";
 
 const {t} = useI18n()
+const {checkedKeys, onCheck, clear} = useTableBatch()
 
 const fmtTs = (ts) => {
   if (!ts) return t('common.never')
@@ -25,6 +27,7 @@ const state = ref({
 })
 
 const tableColumns = computed(() => [
+  {type: 'selection', fixed: 'left', width: 50},
   {title: t('apiToken.tokenName'), key: 'name', ellipsis: {tooltip: true}},
   {title: t('apiToken.tokenPrefix'), key: 'tokenPrefix', width: 160},
   {title: t('apiToken.expAt'), key: 'expAt', width: 170, render: (row) => fmtTs(row.expAt)},
@@ -64,6 +67,9 @@ const createFunc = () => {
   })
 }
 const deleteFunc = async (row) => { await apiNormalApiTokenDelete({code: row.code}); pageFunc() }
+const batchDelete = () => {
+  runBatch(t, checkedKeys.value, (code) => apiNormalApiTokenDelete({code}), () => { clear(); pageFunc() })
+}
 const closeToken = () => { state.value.token.open = false }
 const copyToken = async () => {
   try {
@@ -88,9 +94,22 @@ onBeforeMount(() => { pageFunc() })
       </SearchItem>
     </SearchCard>
 
+    <AppCard :show-border="false" v-if="checkedKeys.length">
+      <n-space align="center">
+        <span>{{ t('common.selected', {n: checkedKeys.length}) }}</span>
+        <n-button size="small" type="error" :focusable="false" @click="batchDelete">{{ t('common.batchDelete') }}</n-button>
+        <n-button size="small" :focusable="false" @click="clear">{{ t('common.clearSelection') }}</n-button>
+      </n-space>
+    </AppCard>
     <AppCard>
       <n-data-table remote :columns="tableColumns" :data="state.table.list" :bordered="false"
-                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"/>
+                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"
+                    :row-key="row => row.code" :checked-row-keys="checkedKeys"
+                    @update:checked-row-keys="onCheck">
+        <template #empty>
+          <n-empty :description="t('common.noData')"/>
+        </template>
+      </n-data-table>
     </AppCard>
     <AppCard :show-border="false">
       <n-pagination :page-size="state.table.search.size" :page="state.table.search.page"

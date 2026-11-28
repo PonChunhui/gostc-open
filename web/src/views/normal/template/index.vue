@@ -12,8 +12,10 @@ import SearchItem from "../../../layout/components/SearchItem.vue";
 import Modal from "../../../components/Modal.vue";
 import {requiredRule} from "../../../utils/formDataRule.js";
 import {generateButtonGroup, generateDeleteButton, generateTextButton} from "../../../utils/tableHelper.js";
+import {useTableBatch, runBatch} from "../../../utils/useTableBatch.js";
 
 const {t} = useI18n()
+const {checkedKeys, onCheck, clear} = useTableBatch()
 
 const kindOptions = computed(() => [
   {key: 'host', value: t('template.kindHost')},
@@ -32,6 +34,7 @@ const state = ref({
 })
 
 const tableColumns = computed(() => [
+  {type: 'selection', fixed: 'left', width: 50},
   {title: t('common.name'), key: 'Name', ellipsis: {tooltip: true}},
   {title: t('template.kind'), key: 'Kind', width: 120, render: (row) => kindText(row.Kind)},
   {title: t('template.content'), key: 'Content', ellipsis: {tooltip: true}},
@@ -64,7 +67,7 @@ const createFunc = () => {
   createRef.value.validate(async valid => {
     if (!valid) {
       let content
-      try { content = JSON.parse(state.value.create.data.content) } catch (e) { $message.error('JSON 格式错误'); return }
+      try { content = JSON.parse(state.value.create.data.content) } catch (e) { $message.error(t('template.jsonError')); return }
       try {
         state.value.create.loading = true
         await apiNormalTemplateCreate({name: state.value.create.data.name, kind: state.value.create.data.kind, content})
@@ -74,6 +77,9 @@ const createFunc = () => {
   })
 }
 const deleteFunc = async (row) => { await apiNormalTemplateDelete({code: row.Code}); searchTable() }
+const batchDelete = () => {
+  runBatch(t, checkedKeys.value, (code) => apiNormalTemplateDelete({code}), () => { clear(); searchTable() })
+}
 
 const loadNodes = async () => { const res = await apiNormalGostNodeList({}); state.value.nodes = res.data || [] }
 const loadClients = async () => { const res = await apiNormalGostClientList({}); state.value.clients = res.data || [] }
@@ -122,9 +128,22 @@ onBeforeMount(() => { pageFunc(); loadNodes(); loadClients() })
       </SearchItem>
     </SearchCard>
 
+    <AppCard :show-border="false" v-if="checkedKeys.length">
+      <n-space align="center">
+        <span>{{ t('common.selected', {n: checkedKeys.length}) }}</span>
+        <n-button size="small" type="error" :focusable="false" @click="batchDelete">{{ t('common.batchDelete') }}</n-button>
+        <n-button size="small" :focusable="false" @click="clear">{{ t('common.clearSelection') }}</n-button>
+      </n-space>
+    </AppCard>
     <AppCard>
       <n-data-table remote :columns="tableColumns" :data="state.table.list" :bordered="false"
-                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"/>
+                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"
+                    :row-key="row => row.Code" :checked-row-keys="checkedKeys"
+                    @update:checked-row-keys="onCheck">
+        <template #empty>
+          <n-empty :description="t('common.noData')"/>
+        </template>
+      </n-data-table>
     </AppCard>
     <AppCard :show-border="false">
       <n-pagination :page-size="state.table.search.size" :page="state.table.search.page"

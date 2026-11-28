@@ -9,9 +9,11 @@ import SearchItem from "../../../layout/components/SearchItem.vue";
 import Modal from "../../../components/Modal.vue";
 import {requiredRule} from "../../../utils/formDataRule.js";
 import {generateButtonGroup, generateTextButton} from "../../../utils/tableHelper.js";
+import {useTableBatch, runBatch} from "../../../utils/useTableBatch.js";
 import {goToUrl} from "../../../utils/browser.js";
 
 const {t} = useI18n()
+const {checkedKeys, onCheck, clear} = useTableBatch()
 
 const providerOptions = computed(() => [
   {key: 'sandbox', value: 'Sandbox'},
@@ -48,6 +50,7 @@ const state = ref({
 })
 
 const tableColumns = computed(() => [
+  {type: 'selection', fixed: 'left', width: 50},
   {title: t('pay.subject'), key: 'Subject', ellipsis: {tooltip: true}},
   {title: t('pay.kind'), key: 'Kind', width: 100, render: (row) => kindText(row.Kind)},
   {title: t('pay.amount'), key: 'Amount', width: 100},
@@ -112,6 +115,10 @@ const queryFunc = async (row) => {
   await apiNormalPayQuery({code: row.Code})
   searchTable()
 }
+const batchQuery = () => {
+  runBatch(t, checkedKeys.value, (code) => apiNormalPayQuery({code}), () => { clear(); searchTable() },
+      {title: t('common.batchQuery'), content: t('common.batchQueryConfirm', {n: checkedKeys.value.length}), type: 'info'})
+}
 
 onBeforeMount(() => { pageFunc() })
 </script>
@@ -131,9 +138,22 @@ onBeforeMount(() => { pageFunc() })
       </SearchItem>
     </SearchCard>
 
+    <AppCard :show-border="false" v-if="checkedKeys.length">
+      <n-space align="center">
+        <span>{{ t('common.selected', {n: checkedKeys.length}) }}</span>
+        <n-button size="small" type="info" :focusable="false" @click="batchQuery">{{ t('common.batchQuery') }}</n-button>
+        <n-button size="small" :focusable="false" @click="clear">{{ t('common.clearSelection') }}</n-button>
+      </n-space>
+    </AppCard>
     <AppCard>
       <n-data-table remote :columns="tableColumns" :data="state.table.list" :bordered="false"
-                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"/>
+                    :loading="state.table.searchLoading" :scroll-x="state.table.minWidth"
+                    :row-key="row => row.Code" :checked-row-keys="checkedKeys"
+                    @update:checked-row-keys="onCheck">
+        <template #empty>
+          <n-empty :description="t('common.noData')"/>
+        </template>
+      </n-data-table>
     </AppCard>
     <AppCard :show-border="false">
       <n-pagination :page-size="state.table.search.size" :page="state.table.search.page"

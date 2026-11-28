@@ -12,10 +12,12 @@ import SearchItem from "../../../layout/components/SearchItem.vue";
 import Modal from "../../../components/Modal.vue";
 import {requiredRule} from "../../../utils/formDataRule.js";
 import {generateButtonGroup, generateUpdateButton, generateDeleteButton} from "../../../utils/tableHelper.js";
+import {useTableBatch, runBatch} from "../../../utils/useTableBatch.js";
 
 const {t} = useI18n()
+const {checkedKeys, onCheck, clear} = useTableBatch()
 
-const eventTypes = ['tunnel_down', 'tunnel_up', 'node_offline', 'traffic_exhaust', 'cert_expire', 'node_failover']
+const eventTypes = ['tunnel_down', 'tunnel_up', 'node_offline', 'traffic_exhaust', 'cert_expire', 'node_failover', 'failover_port_conflict']
 const eventOptions = computed(() => eventTypes.map(e => ({key: e, value: t('alert.event_' + e)})))
 const targetOptions = computed(() => [
   {key: 1, value: t('alert.targetAll')},
@@ -50,6 +52,7 @@ const state = ref({
 })
 
 const ruleColumns = computed(() => [
+  {type: 'selection', fixed: 'left', width: 50},
   {title: t('alert.ruleName'), key: 'name', ellipsis: {tooltip: true}},
   {title: t('alert.eventType'), key: 'eventType', width: 130, render: (row) => eventText(row.eventType)},
   {title: t('alert.targetKind'), key: 'targetKind', width: 90, render: (row) => targetText(row.targetKind)},
@@ -145,6 +148,9 @@ const deleteFunc = async (row) => {
   await apiNormalAlertRuleDelete({code: row.code})
   searchRule()
 }
+const batchDelete = () => {
+  runBatch(t, checkedKeys.value, (code) => apiNormalAlertRuleDelete({code}), () => { clear(); searchRule() })
+}
 
 const onTabChange = (val) => {
   if (val === 'log' && state.value.log.list.length === 0) logPageFunc()
@@ -169,9 +175,22 @@ onBeforeMount(() => { rulePageFunc() })
             </n-space>
           </SearchItem>
         </SearchCard>
+        <AppCard :show-border="false" v-if="checkedKeys.length">
+          <n-space align="center">
+            <span>{{ t('common.selected', {n: checkedKeys.length}) }}</span>
+            <n-button size="small" type="error" :focusable="false" @click="batchDelete">{{ t('common.batchDelete') }}</n-button>
+            <n-button size="small" :focusable="false" @click="clear">{{ t('common.clearSelection') }}</n-button>
+          </n-space>
+        </AppCard>
         <AppCard>
           <n-data-table remote :columns="ruleColumns" :data="state.rule.list" :bordered="false"
-                        :loading="state.rule.searchLoading" :scroll-x="state.rule.minWidth"/>
+                        :loading="state.rule.searchLoading" :scroll-x="state.rule.minWidth"
+                        :row-key="row => row.code" :checked-row-keys="checkedKeys"
+                        @update:checked-row-keys="onCheck">
+            <template #empty>
+              <n-empty :description="t('common.noData')"/>
+            </template>
+          </n-data-table>
         </AppCard>
         <AppCard :show-border="false">
           <n-pagination :page-size="state.rule.search.size" :page="state.rule.search.page"
@@ -195,7 +214,11 @@ onBeforeMount(() => { rulePageFunc() })
         </SearchCard>
         <AppCard>
           <n-data-table remote :columns="logColumns" :data="state.log.list" :bordered="false"
-                        :loading="state.log.searchLoading" :scroll-x="state.log.minWidth"/>
+                        :loading="state.log.searchLoading" :scroll-x="state.log.minWidth">
+            <template #empty>
+              <n-empty :description="t('common.noData')"/>
+            </template>
+          </n-data-table>
         </AppCard>
         <AppCard :show-border="false">
           <n-pagination :page-size="state.log.search.size" :page="state.log.search.page"
