@@ -111,29 +111,41 @@ func doSwitch(db *query.Query, it failoverItem, target, reason string, log *zap.
 	}
 	backup, _ := db.GostNode.Where(db.GostNode.Code.Eq(target)).First()
 	newEntry := entryfollow.Entry(db, backup, it.Type, it.Code)
-	writeFailoverLog(db, it, it.NodeCode, target, oldEntry, newEntry, reason)
 
-	// host：网关路由跟随 + 自定义域名 DNS 跟随
+	// host：网关路由跟随 + DNS 跟随（自定义域名与平台前缀域名都支持）。
+	// 开启 DNS 跟随时保持公网域名不变（前缀域名沿用原节点后缀），仅把 A 记录指到备节点；
+	// 未开启时前缀域名随备节点后缀变化（靠备节点泛解析生效）。
 	if it.Type == model.TUNNEL_HEALTH_TYPE_HOST && backup != nil {
 		host, _ := db.GostClientHost.Where(db.GostClientHost.Code.Eq(it.Code)).First()
 		if host != nil {
 			domain := host.GetCustomDomain()
 			if domain == "" {
-				domain = host.DomainPrefix + "." + backup.Domain
+				if stored := cache2.GetFailoverDomain(it.Code); stored != "" {
+					domain = stored
+				} else if global.Config.Failover.DNSFollow {
+					domain = host.DomainPrefix + "." + primary.Domain
+				} else {
+					domain = host.DomainPrefix + "." + backup.Domain
+				}
 			}
 			cert := crypto.DecryptSafe(host.CustomCert, global.Config.Encrypt.Key)
 			key := crypto.DecryptSafe(host.CustomKey, global.Config.Encrypt.Key)
 			engine.NodeAddDomain(db, target, domain, cert, key, host.CustomForceHttps)
-			if custom := host.GetCustomDomain(); custom != "" && global.Config.Failover.DNSFollow {
-				if provider, cred, ttl, zone, ok := dnsfollow.Resolve(custom); ok {
+			if global.Config.Failover.DNSFollow {
+				if reason == model.FAILOVER_REASON_FAILOVER {
+					cache2.SetFailoverDomain(it.Code, domain)
+				}
+				if provider, cred, ttl, zone, ok := dnsfollow.Resolve(domain); ok {
 					ip, _ := backup.GetOriginAddress()
-					if err := dnsfollow.UpdateA(provider, cred, custom, ip, ttl, zone); err != nil {
-						log.Warn("DNS 跟随失败", zap.String("domain", custom), zap.Error(err))
+					if err := dnsfollow.UpdateA(provider, cred, domain, ip, ttl, zone); err != nil {
+						log.Warn("DNS 跟随失败", zap.String("domain", domain), zap.Error(err))
 					}
 				}
+				newEntry = backup.GetDomainFull("", domain, true)
 			}
 		}
 	}
+	writeFailoverLog(db, it, it.NodeCode, target, oldEntry, newEntry, reason)
 
 	title := "隧道已故障转移到备节点"
 	if reason == model.FAILOVER_REASON_FAILBACK {

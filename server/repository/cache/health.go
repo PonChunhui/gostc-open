@@ -88,6 +88,17 @@ func GetFailoverOrigin(code string) string {
 func DelFailoverOrigin(code string) {
 	global.Cache.Del("failover:origin:" + code)
 	global.Cache.Del("failover:recovered:" + code)
+	global.Cache.Del("failover:domain:" + code)
+}
+
+// FailoverDomain 记录转移期间保持不变的公网域名（平台前缀域名 DNS 跟随时使用），
+// 保证多次转移/回切过程中入口域名不漂移。
+func SetFailoverDomain(code, domain string) {
+	global.Cache.SetString("failover:domain:"+code, domain, cache.NoExpiration)
+}
+
+func GetFailoverDomain(code string) string {
+	return global.Cache.GetString("failover:domain:" + code)
 }
 
 // FailoverRecovered 记录主节点恢复在线的起始时间（Unix 秒），用于回切稳定期。

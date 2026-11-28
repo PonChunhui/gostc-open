@@ -200,3 +200,60 @@ func TestFailoverE2E(t *testing.T) {
 	}
 	t.Logf("冷却防抖: 再次巡检未重复告警（仍%d条）✅", len(logs2))
 }
+
+// TestFailoverPrefixDomainStable 平台自动生成的前缀域名在 DNS 跟随下入口域名保持不变：
+// 转移/回切都沿用原节点后缀（abc.x01.gostc.shop），仅 A 记录指向变化；回切清理后域名缓存释放。
+func TestFailoverPrefixDomainStable(t *testing.T) {
+	global.Cache = memory.NewMemory(filepath.Join(t.TempDir(), "cache.db"), time.Hour)
+	global.Logger = zap.NewNop()
+	global.Config.Failover.DNSFollow = true
+	global.Config.DNS.Provider = "" // 测试不触达真实 DNS API（Resolve 返回 ok=false）
+
+	db, err := gorm.Open(gormlite.Open(filepath.Join(t.TempDir(), "prefix.db")), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{SingularTable: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Exec("PRAGMA foreign_keys=OFF")
+	if sqlDB, e := db.DB(); e == nil {
+		defer sqlDB.Close()
+	}
+	if err := db.AutoMigrate(&model.GostNode{}, &model.GostClientHost{}, &model.GostFailoverLog{},
+		&model.SystemAlertRule{}, &model.SystemAlertLog{}); err != nil {
+		t.Fatal(err)
+	}
+	q := query.Use(db)
+	query.SetDefault(db)
+
+	_ = q.GostNode.Create(&model.GostNode{Base: model.Base{Code: "P"}, Key: "pk", Name: "主",
+		Domain: "x01.gostc.shop", UrlTpl: "https://{{DOMAIN}}:1443", Address: "1.1.1.1:7000"})
+	_ = q.GostNode.Create(&model.GostNode{Base: model.Base{Code: "B"}, Key: "bk", Name: "备",
+		Domain: "x02.gostc.shop", UrlTpl: "https://{{DOMAIN}}:1443", Address: "2.2.2.2:7000"})
+	_ = q.GostClientHost.Create(&model.GostClientHost{Base: model.Base{Code: "host-p"}, Name: "前缀域名",
+		UserCode: "u1", ClientCode: "c1", NodeCode: "P", DomainPrefix: "abc", Enable: 1,
+		TargetIp: "192.168.1.10", TargetPort: "8080"})
+
+	it := failoverItem{Code: "host-p", Type: model.TUNNEL_HEALTH_TYPE_HOST, UserCode: "u1", NodeCode: "P"}
+	doSwitch(q, it, "B", model.FAILOVER_REASON_FAILOVER, zap.NewNop())
+	if got := cache2.GetFailoverDomain("host-p"); got != "abc.x01.gostc.shop" {
+		t.Fatalf("转移后应保持原前缀域名, got %q", got)
+	}
+	// 回切：仍沿用存储的原域名，不漂移为 abc.x02
+	it.NodeCode = "B"
+	doSwitch(q, it, "P", model.FAILOVER_REASON_FAILBACK, zap.NewNop())
+	if got := cache2.GetFailoverDomain("host-p"); got != "abc.x01.gostc.shop" {
+		t.Fatalf("回切应保持原前缀域名, got %q", got)
+	}
+	logs, _ := q.GostFailoverLog.Where(q.GostFailoverLog.TunnelCode.Eq("host-p")).Find()
+	for _, l := range logs {
+		if l.NewEntry != "https://abc.x01.gostc.shop:1443" {
+			t.Fatalf("入口域名应不变, reason=%s newEntry=%q", l.Reason, l.NewEntry)
+		}
+	}
+	cache2.DelFailoverOrigin("host-p")
+	if got := cache2.GetFailoverDomain("host-p"); got != "" {
+		t.Fatalf("回切清理后域名缓存应释放, got %q", got)
+	}
+	t.Logf("前缀域名 DNS 跟随: 转移/回切入口均保持 https://abc.x01.gostc.shop:1443 ✅")
+}
